@@ -13,6 +13,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   2
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "libraryEnabled",
+  "zen.library.enabled",
+  true
+);
+
 ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
   return new Localization(["browser/zen-command-palette.ftl"], true);
 });
@@ -38,6 +45,14 @@ const globalActionsTemplate = [
     icon: "chrome://browser/skin/zen-icons/paintbrush-fill.svg",
   },
   {
+    l10nId: "zen-action-open-library",
+    command: "cmd_zenToggleLibrary",
+    icon: "chrome://browser/skin/zen-icons/library.svg",
+    isAvailable: () => {
+      return lazy.libraryEnabled;
+    },
+  },
+  {
     l10nId: "zen-action-new-split-view",
     command: "cmd_zenNewEmptySplit",
     icon: "chrome://browser/skin/zen-icons/split.svg",
@@ -59,6 +74,26 @@ const globalActionsTemplate = [
     l10nId: "zen-action-new-folder",
     command: "cmd_zenOpenFolderCreation",
     icon: "chrome://browser/skin/zen-icons/folder.svg",
+  },
+  {
+    l10nId: "zen-action-collapse-all-folders",
+    command: window => window.gZenFolders.collapseAllFolders(),
+    icon: "chrome://browser/skin/zen-icons/arrows-collapse.svg",
+    isAvailable: window => {
+      return !!window.gZenFolders?.activeSpaceFolders.some(
+        folder => !folder.collapsed
+      );
+    },
+  },
+  {
+    l10nId: "zen-action-expand-all-folders",
+    command: window => window.gZenFolders.expandAllFolders(),
+    icon: "chrome://browser/skin/zen-icons/arrows-expand.svg",
+    isAvailable: window => {
+      return !!window.gZenFolders?.activeSpaceFolders.some(
+        folder => folder.collapsed
+      );
+    },
   },
   {
     l10nId: "zen-action-copy-current-url",

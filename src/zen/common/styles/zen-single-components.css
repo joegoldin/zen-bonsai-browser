@@ -345,16 +345,13 @@
       align-items: center;
       border-radius: 6px;
 
-      @media not (-moz-platform: macos) {
-        border-radius: 4px;
-      }
-
       transition:
         background-color 0.1s ease-in-out,
         transform 0.12s ease-in-out;
 
       & toolbarbutton {
         background: transparent !important;
+        border-radius: 6px;
       }
 
       & .toolbarbutton-badge-stack {
@@ -782,6 +779,7 @@
       content: "";
       position: absolute;
       top: 0;
+      left: 0;
       height: 100%;
       width: 75%;
       opacity: 0;
@@ -803,10 +801,14 @@
 }
 
 #TabsToolbar-customization-target:is([zen-library-stack-open], [zen-library-stack-closing]) {
-  --zen-library-mask-ramp: 50px;
+  --zen-library-mask-ramp: 80px;
+  --zen-library-mask-bleed: var(--zen-toolbox-padding);
+  --zen-library-mask-overshoot: 10px;
 
   mask-repeat: no-repeat;
-  mask-size: 100% calc(100% + var(--zen-library-mask-ramp));
+  mask-clip: no-clip;
+  mask-position: calc(-1 * var(--zen-library-mask-bleed)) calc(-1 * var(--zen-library-mask-bleed));
+  mask-size: calc(100% + var(--zen-library-mask-bleed) * 2) calc(100% + var(--zen-library-mask-bleed) + var(--zen-library-mask-ramp));
   transition: mask-size var(--zen-library-open-duration) var(--zen-library-open-easing);
 
   mask-image: linear-gradient(
@@ -817,7 +819,7 @@
       100%);
 
   &[zen-library-stack-open] {
-    mask-size: 100% calc(100% - var(--zen-library-stack-height, 0px) + 20px);
+    mask-size: calc(100% + var(--zen-library-mask-bleed) * 2) calc(100% - var(--zen-library-stack-height, 0px) + var(--zen-library-mask-overshoot) + var(--zen-library-mask-bleed));
   }
 }
 
@@ -831,10 +833,17 @@
   right: 0;
   translate: 100px 0;
 
-  :root[zen-right-side="true"] & {
-    left: 0px;
-    right:  unset;
-    translate: -100px 0;
+  &.space-section {
+    position: relative;
+    inset: auto;
+    translate: none;
+    flex: 0 0 auto;
+    width: 50px;
+    height: auto;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -865,8 +874,8 @@
 }
 
 @property --zen-swipe-add-space-thickness {
-  syntax: '<length-percentage>';
-  initial-value: 20%;
+  syntax: '<length>';
+  initial-value: 0px;
   inherits: true;
 }
 
@@ -875,12 +884,12 @@
   width: 30px;
   aspect-ratio: 1;
 
-  --zen-swipe-add-space-thickness: 16%;
+  --zen-swipe-add-space-thickness: 2.4px;
   transition: --zen-swipe-add-space-thickness 0.2s ease-in-out;
   contain: content;
 
-  --progress: white;
-  --background: color-mix(var(--zen-primary-color), white 15%);
+  --progress: var(--toolbox-textcolor);
+  --background: color-mix(in srgb, var(--zen-primary-color), white 15%);
   
   right: 10px;
   top: 50%;
@@ -889,52 +898,49 @@
   border-radius: 100%;
 
   background: var(--background);
-  box-shadow: 0px 1px 8px #0005;
+  box-shadow: 0px 1px 8px #0003;
   
   & .zen-swipe-add-space-icon {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: url("chrome://browser/skin/zen-icons/plus.svg") center / 55% no-repeat;
     -moz-context-properties: fill;
-    fill: white;
+    fill: var(--toolbox-textcolor);
   }
 
-  &::after {
-    content: ''; 
+  & .zen-swipe-add-space-progress-ring {
     display: block;
     position: relative;
     z-index: -1;
-    
+
     width: 100%;
     height: 100%;
-    border-radius: inherit;
-    
-    background:
-    conic-gradient(
-        from 0deg,
-        var(--background) calc(100% - var(--value) * 1%),
-        var(--progress) calc(100% - var(--value) * 1%)
-      )
-      border-box,
-    var(--border-color) border-box;
+  }
 
-    mask: radial-gradient(
-      circle closest-side,
-      transparent calc(100% - var(--zen-swipe-add-space-thickness)),
-      black calc(100% - var(--zen-swipe-add-space-thickness))
-    );
+  & .zen-swipe-add-space-progress-arc {
+    fill: none;
+    stroke: var(--progress);
+    stroke-width: var(--zen-swipe-add-space-thickness);
+    r: calc(15px - var(--zen-swipe-add-space-thickness) / 2);
+    stroke-dasharray: 0 100;
+    transform: rotate(-90deg) scaleX(-1);
+    transform-origin: center;
   }
 
   :root[zen-right-side="true"] & {
     right: unset;
     left: 10px;
   }
+
+  .space-section & {
+    position: static;
+    translate: none;
+  }
 }
 
 .zen-swipe-add-space-container[readytoadd] {
   & .zen-swipe-add-space-progress-badge {
-    --zen-swipe-add-space-thickness: 100%;
+    --zen-swipe-add-space-thickness: 15px;
     transform-origin: center;
     animation: zen-swipe-add-icon-jump 0.2s ease-in-out;
   }

@@ -121,7 +121,8 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
         return;
       }
       this.#lastFolderContextMenu = folder;
-      gZenLiveFoldersUI.buildContextMenu(folder);
+      // Created at delayed startup, so it may not exist for a very early menu.
+      window.gZenLiveFoldersUI?.buildContextMenu(folder);
 
       const newSubfolderItem = document.getElementById(
         "context_zenFolderNewSubfolder"
@@ -499,6 +500,7 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
     }
 
     await this.animateCollapse(group);
+    group.dispatchEvent(new CustomEvent("ZenFolderAnimationFinished"));
   }
 
   #queueCollapsedRelayout(group) {
@@ -549,6 +551,7 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
     }
 
     await this.animateExpand(group);
+    group.dispatchEvent(new CustomEvent("ZenFolderAnimationFinished"));
   }
 
   #onNewFolder(event) {
@@ -721,6 +724,10 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
     tabs = [emptyTab, ...filteredTabs];
 
     const folder = this._createFolderNode(options);
+    emptyTab.setAttribute(
+      "zen-workspace-id",
+      folder.getAttribute("zen-workspace-id")
+    );
 
     if (options.insertAfter) {
       options.insertAfter.after(folder);
@@ -1666,7 +1673,7 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
   }
 
   get #folderRevealDuration() {
-    return this._dontAnimateFolder ? 0 : 0.22;
+    return this._dontAnimateFolder ? 0 : 0.2;
   }
 
   async animateCollapse(group) {
@@ -2306,6 +2313,57 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
       label,
       wasCollapsed ? this.#folderRevealDuration * 1000 : 0
     );
+  }
+
+  /**
+   * Every folder of the active space, in DOM order, which lists parent folders
+   * before their children.
+   *
+   * @returns {Array<MozTabbrowserTabGroup>} The folders, or an empty array when
+   *   folders are unavailable in this window.
+   */
+  get activeSpaceFolders() {
+    if (!this.#foldersEnabled) {
+      return [];
+    }
+    const root = gZenWorkspaces.activeWorkspaceElement ?? gBrowser.tabContainer;
+    return Array.from(root.querySelectorAll("zen-folder"));
+  }
+
+  /**
+   * Collapses every folder of the active space.
+   */
+  async collapseAllFolders() {
+    await this.#setAllFoldersCollapsed(true);
+  }
+
+  /**
+   * Expands every folder of the active space.
+   */
+  async expandAllFolders() {
+    await this.#setAllFoldersCollapsed(false);
+  }
+
+  async #setAllFoldersCollapsed(collapsed) {
+    const folders = this.activeSpaceFolders;
+    if (collapsed) {
+      // Innermost folders first, so each one is still visible when its
+      // collapsed height gets measured. Expanding goes the other way around,
+      // so nested folders are visible by the time they expand.
+      folders.reverse();
+    }
+    for (const folder of folders) {
+      if (!folder.isConnected || folder.collapsed === collapsed) {
+        continue;
+      }
+      const finished = new Promise(resolve =>
+        folder.addEventListener("ZenFolderAnimationFinished", resolve, {
+          once: true,
+        })
+      );
+      folder.collapsed = collapsed;
+      await finished;
+    }
   }
 
   styleCleanup(items) {

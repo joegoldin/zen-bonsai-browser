@@ -4,7 +4,11 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  canDrawThumbnail: "moz-src:///zen/library/ZenLibraryFileTypes.sys.mjs",
+  canDrawThumbnail: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  blockedText: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  confirmUnblock: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  isBlocked: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  transferText: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   DownloadsCommon:
     "moz-src:///browser/components/downloads/DownloadsCommon.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
@@ -19,7 +23,14 @@ const CLOSE_DELAY_MS = 200;
 const FILE_MIME = "application/x-moz-file";
 const BADGE_MARKUP = `
   <span class="zen-library-download-badge no-squircles">
-    <span class="zen-library-download-progress no-squircles"></span>
+    <svg xmlns="http://www.w3.org/2000/svg"
+         class="zen-library-download-progress no-squircles"
+         viewBox="0 0 31 31">
+      <circle class="zen-library-download-progress-track"
+              cx="15.5" cy="15.5" r="14"/>
+      <circle class="zen-library-download-progress-arc"
+              cx="15.5" cy="15.5" r="14" pathLength="100"/>
+    </svg>
   </span>
 `;
 
@@ -36,7 +47,6 @@ class ZenLibraryDownloadStack {
   #recentNewDownload = false;
   #closeTimer = null;
   #contextMenuOpen = false;
-  #secondsLeft = new WeakMap();
 
   /**
    * @param {Element} button - The library toolbar button
@@ -45,6 +55,7 @@ class ZenLibraryDownloadStack {
     this.#button = button;
     button.setAttribute("command", "cmd_zenToggleLibrary");
     button.classList.add("toolbarbutton-badge-stack-host");
+    button.appendChild(this.#parse(`<box class="zen-library-sprite"/>`));
     button.appendChild(
       this.#parse(
         `<box class="toolbarbutton-badge-stack">${BADGE_MARKUP}</box>`
@@ -58,12 +69,15 @@ class ZenLibraryDownloadStack {
     button.addEventListener("mouseleave", this);
     this.#list.addEventListener("mouseenter", this);
     this.#list.addEventListener("mouseleave", this);
+    this.#window.addEventListener("unload", this, { once: true });
 
-    this.#data = lazy.DownloadsCommon.getData(this.#window, true);
+    // This session's downloads, the way the downloads panel takes them.
+    this.#data = lazy.DownloadsCommon.getData(this.#window);
     this.#data.addView(this);
   }
 
   destroy() {
+    this.#window.removeEventListener("unload", this);
     this.#data.removeView(this);
     this.#window.clearTimeout(this.#closeTimer);
     this.#list.remove();
@@ -98,6 +112,9 @@ class ZenLibraryDownloadStack {
       case "mouseleave":
         this.#scheduleClose();
         break;
+      case "unload":
+        this.destroy();
+        break;
     }
   }
 
@@ -111,7 +128,10 @@ class ZenLibraryDownloadStack {
   }
 
   #open() {
-    if (this.#footButtons.hasAttribute("zen-library-stack-open")) {
+    if (
+      !this.#downloads.length ||
+      this.#footButtons.hasAttribute("zen-library-stack-open")
+    ) {
       return;
     }
     this.#aimBadge();
@@ -130,12 +150,15 @@ class ZenLibraryDownloadStack {
     for (const host of [this.#footButtons, this.#downloadsListWrapper]) {
       host.removeAttribute("zen-library-stack-open");
     }
-    // The strip's fade stays until its progress is back at zero.
     const wrapper = this.#downloadsListWrapper;
     wrapper.setAttribute("zen-library-stack-closing", "true");
-    wrapper.addEventListener("transitionend", function onEnd(event) {
-      if (event.propertyName === "--zen-library-progress") {
-        wrapper.removeEventListener("transitionend", onEnd);
+    const fading = wrapper
+      .getAnimations()
+      .filter(animation => animation.transitionProperty === "mask-size")
+      .map(animation => animation.finished);
+    Promise.allSettled(fading).then(() => {
+      // Opening again mid-close takes the attribute off by itself.
+      if (!this.#footButtons.hasAttribute("zen-library-stack-open")) {
         wrapper.removeAttribute("zen-library-stack-closing");
       }
     });
@@ -154,6 +177,10 @@ class ZenLibraryDownloadStack {
     const from = this.#window.windowUtils.getBoundsWithoutFlushing(this.#badge);
     const to = target.getBoundingClientRect();
     const style = this.#window.getComputedStyle(this.#badge);
+    const badgeTransform =
+      style.transform === "none"
+        ? new this.#window.DOMMatrixReadOnly()
+        : new this.#window.DOMMatrixReadOnly(style.transform);
     // The entry is still translated down while closed; land where it ends.
     const entryTransform = this.#window.getComputedStyle(entry).transform;
     const rise =
@@ -162,11 +189,11 @@ class ZenLibraryDownloadStack {
         : new this.#window.DOMMatrixReadOnly(entryTransform).f;
     this.#badge.style.setProperty(
       "--zen-library-badge-to-x",
-      `${parseFloat(style.left) + to.left - from.left}px`
+      `${badgeTransform.e + to.left - from.left}px`
     );
     this.#badge.style.setProperty(
       "--zen-library-badge-to-y",
-      `${parseFloat(style.top) + to.top - from.top - rise}px`
+      `${badgeTransform.f + to.top - from.top - rise}px`
     );
   }
 
@@ -210,11 +237,39 @@ class ZenLibraryDownloadStack {
       );
       const action = entry.querySelector(".zen-library-download-action");
       action.addEventListener("click", event => event.stopPropagation());
-      action.addEventListener("command", () =>
-        this.#cancelDownload(entry.download)
-      );
+      action.addEventListener("command", () => this.#rowAction(entry.download));
     }
     return list;
+  }
+
+  /**
+   * @param {object} download - Any download
+   * @returns {boolean} Whether its file is there to be shown
+   */
+  #hasFile(download) {
+    return (
+      !!download?.succeeded && !download.deleted && !!download.target?.exists
+    );
+  }
+
+  /**
+   * What the button of an entry does.
+   *
+   * @param {object} download - The entry's download
+   */
+  #rowAction(download) {
+    if (!download) {
+      return;
+    }
+    if (!download.stopped) {
+      this.#cancelDownload(download);
+      return;
+    }
+    if (this.#hasFile(download)) {
+      lazy.DownloadsCommon.showDownloadedFile(
+        new lazy.FileUtils.File(download.target.path)
+      );
+    }
   }
 
   /**
@@ -258,6 +313,14 @@ class ZenLibraryDownloadStack {
       this.#toggleOpenWhenDone(download);
       return;
     }
+    if (lazy.isBlocked(download)) {
+      lazy.confirmUnblock(
+        download,
+        this.#window,
+        this.#openDownload.bind(this)
+      );
+      return;
+    }
     if (download.succeeded) {
       lazy.DownloadsCommon.openDownload(download).catch(console.error);
     } else if (download.source?.url) {
@@ -266,7 +329,7 @@ class ZenLibraryDownloadStack {
   }
 
   #onDragStart(event, download) {
-    if (!download?.succeeded || download.deleted || !download.target?.exists) {
+    if (!this.#hasFile(download)) {
       event.preventDefault();
       return;
     }
@@ -296,6 +359,7 @@ class ZenLibraryDownloadStack {
       );
       entry.querySelector(".zen-library-download-list-title").textContent =
         this.#fileName(download);
+      entry.setAttribute("tooltiptext", this.#fileName(download));
       const subtitle = entry.querySelector(
         ".zen-library-download-list-subtitle"
       );
@@ -310,6 +374,15 @@ class ZenLibraryDownloadStack {
       }
       entry.toggleAttribute("downloading", !download.stopped);
       entry.toggleAttribute("open-when-done", this.#opensWhenDone(download));
+      // The one button an entry has calls off a download on its way in, and
+      // shows the file once it is here.
+      entry.toggleAttribute("show-in-folder", this.#hasFile(download));
+      this.#window.document.l10n.setAttributes(
+        entry.querySelector(".zen-library-download-action"),
+        download.stopped
+          ? "library-downloads-show-tooltip"
+          : "library-downloads-cancel-tooltip"
+      );
     });
     this.#window
       .promiseDocumentFlushed(() => this.#list.getBoundingClientRect().height)
@@ -334,12 +407,11 @@ class ZenLibraryDownloadStack {
         `${preview ? `url('${preview}'), ` : ""}url('${this.#iconUrl(download)}')`
       );
     }
-    badge
-      .querySelector(".zen-library-download-progress")
-      .style.setProperty(
-        "--value",
-        download?.hasProgress ? download.progress : 0
-      );
+    badge.querySelector(
+      ".zen-library-download-progress-arc"
+    ).style.strokeDasharray = `${
+      download?.hasProgress ? download.progress : 0
+    } 100`;
   }
 
   #updateBadgeShowing() {
@@ -473,18 +545,9 @@ class ZenLibraryDownloadStack {
 
   #statusText(download) {
     const strings = lazy.DownloadsCommon.strings;
-    const totalBytes = download.hasProgress ? download.totalBytes : -1;
     if (!download.stopped) {
-      const [statusText, secondsLeft] = lazy.DownloadUtils.getDownloadStatus(
-        download.currentBytes,
-        totalBytes,
-        download.speed,
-        this.#secondsLeft.get(download) ?? Infinity
-      );
-      this.#secondsLeft.set(download, secondsLeft);
-      return statusText;
+      return lazy.transferText(download);
     }
-    this.#secondsLeft.delete(download);
     if (download.deleted) {
       return strings.fileDeleted;
     }
@@ -507,16 +570,13 @@ class ZenLibraryDownloadStack {
       );
     }
     if (download.canceled && download.hasPartialData) {
-      return this.#joinStatus(
-        strings.statePaused,
-        lazy.DownloadUtils.getTransferTotal(download.currentBytes, totalBytes)
-      );
+      return this.#joinStatus(strings.statePaused, lazy.transferText(download));
     }
     if (download.error?.becauseBlockedByParentalControls) {
       return strings.stateBlockedParentalControls;
     }
     if (download.error?.becauseBlockedByReputationCheck) {
-      return strings.blockedMalware;
+      return lazy.blockedText(download);
     }
     return download.canceled ? strings.stateCanceled : strings.stateFailed;
   }
@@ -578,6 +638,12 @@ class ZenLibraryDownloadStack {
       items.push({
         l10nId: "downloads-cmd-remove-from-history",
         onClick: () => C.deleteDownload(download).catch(console.error),
+      });
+    }
+    if (this.#data.canRemoveFinished) {
+      items.push({
+        l10nId: "library-downloads-menu-clear-preview",
+        onClick: () => this.#data.removeFinished(),
       });
     }
     return items;

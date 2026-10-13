@@ -24,8 +24,6 @@
   appearance: unset !important;
   height: fit-content;
   gap: 3px;
-
-  container-type: inline-size;
   width: 100%;
 
   & toolbarbutton {
@@ -178,7 +176,7 @@
 /* Mark workspaces indicator */
 .zen-current-workspace-indicator {
   --indicator-gap: calc(var(--toolbarbutton-padding-inner) - 1px);
-  padding: calc(3px + var(--tab-inline-padding) + var(--zen-toolbox-padding));
+  padding: calc(3px + var(--tab-padding-inline) + var(--zen-toolbox-padding));
   font-weight: 500;
   position: relative;
   max-height: var(--zen-workspace-indicator-height);
@@ -209,7 +207,7 @@
   }
 
   :root[zen-unsynced-window='true'][zen-sidebar-expanded='true'] & {
-    padding: calc(-2px + var(--tab-inline-padding) + var(--zen-toolbox-padding));
+    padding: calc(-2px + var(--tab-padding-inline) + var(--zen-toolbox-padding));
   }
 
   :root:not([zen-unsynced-window]) & {
@@ -334,6 +332,8 @@ zen-workspace {
   overflow: hidden;
   color: var(--toolbox-textcolor);
 
+  contain: size layout;
+
   --tab-background-color-selected: light-dark(
     color-mix(in srgb, rgba(255, 255, 255, 0.8) 98%, var(--zen-primary-color)),
     color-mix(in srgb, rgba(255, 255, 255, 0.18) 95%, var(--zen-primary-color))
@@ -415,7 +415,7 @@ zen-workspace {
   }
 
   #navigator-toolbox:not([movingtab], [animating-background]) &:not([swipe-gesture], [active]) {
-    visibility: hidden;
+    -moz-subtree-hidden-only-visually: 1;
   }
 }
 

@@ -2,4 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-        content/browser/zen-components/ZenLiveFoldersUI.mjs                 (../../zen/live-folders/ZenLiveFoldersUI.mjs)
+[DEFAULT]
+prefs = [
+  "zen.library.enabled=true",
+]
+
+["browser_library_closed_tab_icon.js"]
+
+["browser_library_rapid_toggle.js"]

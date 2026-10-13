@@ -471,7 +471,7 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
     return await this.#imageBitmapToObjectURL(
       await window.browsingContext.currentWindowGlobal.drawSnapshot(
         rect,
-        zoomLevel,
+        zoomLevel * (window.devicePixelRatio || 1),
         "transparent",
         undefined
       )
@@ -1778,6 +1778,8 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
     gBrowser.moveTabAfter(this.#currentTab, this.#currentParentTab);
 
     this.#prepareTabForFullOpen();
+
+    gZenVerticalTabsManager.animateItemOpen(this.#currentTab);
 
     const sidebarButtons = this.browserWrapper.querySelector(
       ".zen-glance-sidebar-container"

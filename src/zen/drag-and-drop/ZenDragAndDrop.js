@@ -61,8 +61,6 @@
   };
 
   window.ZenDragAndDrop = class extends window.TabDragAndDrop {
-    static elementToMove = elementToMove;
-
     #dragOverBackground = null;
     #lastDropTarget = null;
     originalDragImageArgs = [];
@@ -149,6 +147,12 @@
         "_treeNestZone",
         "zen.tab-tree.drag-nest-zone",
         40
+      );
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_prefsShowNewTabButtonTop",
+        "zen.view.show-newtab-button-top",
+        true
       );
 
       ChromeUtils.defineESModuleGetters(
@@ -735,7 +739,7 @@
         dropBefore = true;
       }
       this._setDragOverGroupColor(colorCode);
-      this._tabbrowserTabs.toggleAttribute("movingtab-addToGroup", colorCode);
+      this._tabbrowserTabs.toggleAttribute("movingtab-addToGroup", !!colorCode);
       this._tabbrowserTabs.toggleAttribute("movingtab-ungroup", !colorCode);
 
       if (
@@ -756,13 +760,30 @@
     }
 
     get #dragShiftableItems() {
+      // This getter is called from the dragover hot path (once per dragover
+      // event), so doing a querySelector + building a new array each time is
+      // wasteful. Cache the result, keyed on the values it was derived from so
+      // that it is invalidated when the active workspace changes mid-drag
+      // (e.g. when dragging a tab over the workspace switcher) or when the
+      // pref is toggled.
+      const workspace = gZenWorkspaces.activeWorkspace;
+      const showNewTabButtonTop = this._prefsShowNewTabButtonTop;
+      const cache = this._dragShiftableItemsCache;
+      if (
+        cache?.workspace === workspace &&
+        cache.showNewTabButtonTop === showNewTabButtonTop
+      ) {
+        return cache.items;
+      }
       const separator = gZenWorkspaces.pinnedTabsContainer.querySelector(
         ".pinned-tabs-container-separator"
       );
       // Make sure to always return the separator at the start of the array
-      return Services.prefs.getBoolPref("zen.view.show-newtab-button-top")
+      const items = showNewTabButtonTop
         ? [separator, gZenWorkspaces.activeWorkspaceElement.newTabButton]
         : [separator];
+      this._dragShiftableItemsCache = { workspace, showNewTabButtonTop, items };
+      return items;
     }
 
     handle_dragover(event) {
@@ -959,10 +980,17 @@
         parent.appendChild(indicator);
       }
       indicator.setAttribute("orientation", "horizontal");
-      indicator.style.setProperty("--indicator-left", `${left}px`);
-      indicator.style.setProperty("--indicator-width", `${width}px`);
-      indicator.style.top = `${Math.round(top)}px`;
-      indicator.style.removeProperty("left");
+      const style = indicator.style;
+      const vars = {
+        "--indicator-left": `${left}px`,
+        "--indicator-width": `${width}px`,
+        "--indicator-top": `${Math.round(top)}px`,
+      };
+      for (const [name, value] of Object.entries(vars)) {
+        if (style.getPropertyValue(name) !== value) {
+          style.setProperty(name, value);
+        }
+      }
       return indicator;
     }
 
@@ -2070,7 +2098,7 @@
             (hoveringPeriphery ||
               (showIndicatorUnderNewTabButton &&
                 !(pinnedTabsCount - gBrowser._numZenEssentials))) &&
-            Services.prefs.getBoolPref("zen.view.show-newtab-button-top");
+            this._prefsShowNewTabButtonTop;
           dropElement =
             (useLastPinned
               ? this._tabbrowserTabs.ariaFocusableItems.at(pinnedTabsCount)
@@ -2161,7 +2189,8 @@
         dropBefore =
           !showIndicatorUnderNewTabButton && this._dropsBefore(event, rect);
         const top = Math.round(dropBefore ? rect.top : rect.top + rect.height);
-        if (gZenPinnedTabManager.dragIndicator.style.top !== `${top}px`) {
+        const indicatorStyle = gZenPinnedTabManager.dragIndicator.style;
+        if (indicatorStyle.getPropertyValue("--indicator-top") !== `${top}px`) {
           shouldPlayHapticFeedback = true;
         }
         this._placeDropIndicator({
@@ -2243,6 +2272,8 @@
           numEssentials
         );
         this._fakeEssentialTab = document.createXULElement("vbox");
+        this._fakeEssentialTab.style.height =
+          "calc(var(--tab-min-height) + var(--tab-margin-block) * 2)";
         this._fakeEssentialTab.elementIndex = numEssentials;
         delete dragData.animDropElementIndex;
         if (!draggedTab.hasAttribute("zen-essential")) {
