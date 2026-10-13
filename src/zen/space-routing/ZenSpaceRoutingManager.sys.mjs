@@ -21,8 +21,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 const VALID_MATCH_TYPES = ["contains", "equal-to", "regex"];
 
-const lazy = {};
-
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
