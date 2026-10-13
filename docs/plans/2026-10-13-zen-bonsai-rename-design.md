@@ -1,0 +1,127 @@
+# Rename the fork to Zen Bonsai
+
+## Goal
+
+Ship this fork as **Zen Bonsai** (package `zen-bonsai-browser`) instead of
+presenting itself as Zen Browser, while:
+
+- keeping every on-disk identity that locates a user's profile, so an existing
+  Zen profile opens unchanged;
+- keeping clear attribution to upstream Zen Browser and staying within
+  MPL-2.0.
+
+## Scope: display layer only
+
+Only what users see, and what names the package, changes. Everything that
+determines a path or a process identity stays as upstream has it.
+
+### Changes
+
+| Item | Where | Old | New |
+|---|---|---|---|
+| Brand names (release) | `surfer.json` `brands.release`: `brandFullName`, `brandShortName`, `brandShorterName` | Zen Browser / Zen / Zen | Zen Bonsai (all three) |
+| Product name | `surfer.json` `name` | Zen Browser | Zen Bonsai |
+| Nix branding copy | `nix/zen-browser.nix` `surfer-config` (hand-maintained twin of `surfer.json`) | as above | as above |
+| Desktop entry name | `packaging/zen.desktop`, `build/AppDir/zen.desktop` `Name=` | Zen Browser | Zen Bonsai |
+| deb/rpm package | `.github/workflows/fork-linux-release.yml` (`fpm -n`) | `zen-browser-tst` | `zen-bonsai-browser` |
+| deb/rpm install dir | same workflow, `packaging/zen.desktop` `Exec=`/`Icon=` | `/opt/zen-tst` | `/opt/zen-bonsai` |
+| Nix package | `flake.nix`, `nix/package.nix` | `zen-browser-unwrapped` | `zen-bonsai-browser-unwrapped`; `zen-browser-unwrapped` stays as an alias |
+| Version suffix | workflow version check, `nix/zen-browser.nix` `zen-version`, docs | `-tst.N` | `-bonsai.N` (first: `1.23.2b-bonsai.1`) |
+| Icons | `configs/branding/release/*` | Zen's logo | new bonsai set (below) |
+| GitHub repo | GitHub settings | `joegoldin/zen-browser-desktop` | `joegoldin/zen-bonsai-browser` |
+| Docs | `README.md`, `docs/fork-maintenance.md` | Zen Browser with tree-style tabs | Zen Bonsai |
+
+`brand.ftl`, `brand.properties` and `brand.dtd` are generated from the brand
+names (surfer for the GitHub build, `nix/assets.nix` for the Nix build), so
+every `-brand-short-name` / `-brand-full-name` string in the UI becomes
+"Zen Bonsai": window titles, About, "Quit Zen Bonsai", and so on.
+
+The deb and rpm keep `conflicts`/`provides zen-browser`, and add
+`--replaces zen-browser-tst` (deb) and `--rpm-obsoletes zen-browser-tst`
+(rpm), so the new package upgrades the old one in place.
+
+### Unchanged, deliberately
+
+| Item | Value | Why |
+|---|---|---|
+| `appId`, `binaryName` | `zen` | binary name, macOS bundle id |
+| `MOZ_APP_PROFILE` (`src/toolkit/moz-configure.patch`) | `zen` | locates the profile (`~/.zen`) |
+| `MOZ_APP_BASENAME` (`configs/common/mozconfig`) | `Zen` | can feed app-data paths on macOS/Windows; upstream edits this file |
+| Vendor | `Zen OSS Team` | credits upstream in About; feeds `MOZ_APP_VENDOR` |
+| `/usr/bin/zen`, `StartupWMClass=zen` | `zen` | launcher and window class users already rely on |
+| Twilight brand | Zen Twilight | the fork never builds it; leaving it avoids sync conflicts |
+| Literal "Zen" in Zen's own `.ftl` strings | e.g. "Zen Mods", Spaces, welcome flow | these name Zen features; editing upstream strings conflicts on every sync |
+
+## Icon
+
+- Source: `configs/branding/release/bonsai.svg`, a flat, simple bonsai inside
+  an open ensō circle. It nods to Zen's circular mark without copying it, and
+  stays legible at 16 px.
+- Generator: `scripts/gen-bonsai-icons.sh` renders every branding asset from the
+  SVG: `logo{16,22,24,32,48,64,128,256,512,1024}.png`, `logo.png`,
+  `logo-mac.png`, `firefox.ico`, `firefox64.ico`, `firefox.icns`,
+  `VisualElements_{70,150}.png`, `PrivateBrowsing_{70,150}.png` and
+  `document*.ico`. Tools come from the devenv shell (an SVG rasteriser plus
+  ImageMagick for `.ico`, `png2icns` for `.icns`).
+- The rendered files are committed. Builds stay offline and unchanged, and the
+  script is rerun only when the SVG changes.
+- Out of scope: `wizWatermark.bmp`, `MacOSInstaller.svg` and the `content/`
+  assets are Windows/macOS installer art the fork does not ship; they keep Zen's
+  art for now.
+- Process: draft the SVG, render a preview at 16/32/128/512 px for review, and
+  only then generate the full set.
+
+## Attribution and MPL-2.0
+
+MPL-2.0 requires keeping license notices, licensing modified covered files
+under MPL, and making source available. A rename changes none of that:
+
+- `LICENSE` and every per-file MPL header stay unchanged.
+- The repo stays public under MPL-2.0.
+
+MPL §2.3 grants no trademark rights, so attribution is kept explicit:
+
+- The README opens "Zen Bonsai, an unofficial fork of
+  [Zen Browser](https://github.com/zen-browser/desktop)" and keeps the
+  "not affiliated with or endorsed by the Zen team" notice.
+- deb/rpm descriptions: "Zen Bonsai: an unofficial fork of Zen Browser with
+  native tree-style tabs".
+- The vendor stays "Zen OSS Team".
+- A new icon replaces Zen's logo, so the app does not present Zen's mark as its
+  own.
+
+## Upstream sync
+
+The `brands.release` block in `surfer.json` sits next to `displayVersion`,
+which upstream bumps on every release, so syncs will conflict there.
+Resolution: take upstream's `displayVersion` and keep the fork's brand names.
+`docs/fork-maintenance.md` gains this as a sixth recurring conflict point.
+
+## Rollout
+
+1. Rename the GitHub repo; GitHub redirects the old URL, so existing clones,
+   the dotfiles flake input and CI keep resolving.
+2. Draft the icon SVG and approve the previews.
+3. Commit the rename and the icons to `dev` and push.
+4. Afterwards, and only when Joe asks: point the dotfiles `zen-src` input at the
+   new URL and package name, and dispatch the release workflow with
+   `1.23.2b-bonsai.1`.
+
+The in-flight `1.23.2b-tst.1` release run is left to finish as the last release
+under the old name.
+
+## Verification
+
+No local build. Instead:
+
+- `nix eval` resolves both `zen-bonsai-browser-unwrapped` and the
+  `zen-browser-unwrapped` alias.
+- All patches still apply to pristine Firefox 158.0, the same check the
+  Firefox 158 base bump used.
+- The generated `brand.ftl` (from `nix/assets.nix`) reads "Zen Bonsai".
+- The workflow's version regex accepts `1.23.2b-bonsai.1` and rejects
+  `1.23.2b-tst.1`.
+- A grep for the remaining "Zen Browser" strings leaves only intended hits:
+  attribution, `issue-metrics` history and upstream feature strings.
+- garnix builds `dev` after the push; the first full proof is that build and the
+  next release run.
