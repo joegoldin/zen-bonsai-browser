@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { ContextualIdentityService } from "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs";
 import { JSONFile } from "resource://gre/modules/JSONFile.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
@@ -61,6 +62,160 @@ class nsZenSpaceRoutingManager {
         "popupshowing",
         this.#updateTabCloseCountState.bind(this)
       );
+
+    this.#initReopenInContainerItems(window);
+  }
+
+  /**
+   * Lifts the tab context menu's "Open in New Container Tab" choices to the
+   * top level as "Reopen in <container>" items right below "Bookmark Tab",
+   * since a container is what binds a tab to its Space. Unlike the stock
+   * submenu, reopening closes the original tab. The rest of that
+   * submenu (no container, add/manage containers) moves into "Move Tab", and
+   * the stock submenu is hidden.
+   *
+   * @param {nsIDOMWindow} window - The browser window that just started up
+   */
+  #initReopenInContainerItems(window) {
+    window.MozXULElement.insertFTLIfNeeded(
+      "toolkit/global/contextual-identity.ftl"
+    );
+    const menu = window.document.getElementById("tabContextMenu");
+    // Registered after TabContextMenu's own popupshowing listener (added at
+    // window init), so it runs once the stock submenu's visibility is decided.
+    menu.addEventListener("popupshowing", event => {
+      if (event.target.id == "tabContextMenu") {
+        this.#updateReopenInContainerItems(window);
+      }
+    });
+    // Items in the Move Tab submenu bubble up to the context menu too.
+    menu.addEventListener("command", event => {
+      const item = event.target;
+      if (
+        item.classList.contains("zen-reopen-container-item") &&
+        item.hasAttribute("data-usercontextid")
+      ) {
+        this.#reopenInContainer(window, event);
+      }
+    });
+  }
+
+  /**
+   * Reopens the context tabs in the chosen container, then closes each
+   * original. "Move to" already relocates a tab within its container; the
+   * point of reopening is to end up with the tab in the target container only.
+   *
+   * TabContextMenu.reopenInContainer() silently skips a tab it cannot reopen
+   * (a lazy tab whose principal does not deserialize), so it is handed one tab
+   * at a time and an original is only closed once its replacement opened.
+   *
+   * @param {nsIDOMWindow} window - The owning browser window
+   * @param {Event} event - The command event from the chosen menuitem
+   */
+  #reopenInContainer(window, event) {
+    const { gBrowser, TabContextMenu } = window;
+    const contextTabs = TabContextMenu.contextTabs;
+    const reopenedTabs = [];
+    try {
+      for (const tab of contextTabs) {
+        // On the window, since Zen keeps tabs (essentials, spaces) outside
+        // gBrowser.tabContainer; TabOpen bubbles up to it either way.
+        let opened = false;
+        const onTabOpen = () => (opened = true);
+        window.addEventListener("TabOpen", onTabOpen);
+        TabContextMenu.contextTabs = [tab];
+        try {
+          TabContextMenu.reopenInContainer(event);
+        } finally {
+          window.removeEventListener("TabOpen", onTabOpen);
+        }
+        if (opened) {
+          reopenedTabs.push(tab);
+        }
+      }
+    } finally {
+      TabContextMenu.contextTabs = contextTabs;
+    }
+    gBrowser.removeTabs(reopenedTabs);
+  }
+
+  /**
+   * Rebuilds the container items for the tab the context menu opened on.
+   *
+   * @param {nsIDOMWindow} window - The owning browser window
+   */
+  #updateReopenInContainerItems(window) {
+    const { document, TabContextMenu } = window;
+    for (const item of document.querySelectorAll(
+      ".zen-reopen-container-item"
+    )) {
+      item.remove();
+    }
+
+    const stockMenu = document.getElementById("context_reopenInContainer");
+    // TabContextMenu.updateContextMenu() already hid it when containers do not
+    // apply (the pref is off, or this is a private window).
+    if (stockMenu.hidden) {
+      return;
+    }
+    stockMenu.hidden = true;
+
+    const contextTab = TabContextMenu.contextTab;
+    const currentUserContextId = parseInt(
+      contextTab.getAttribute("usercontextid") || "0"
+    );
+    const createItem = (l10nId, args) => {
+      const item = document.createXULElement("menuitem");
+      item.classList.add("zen-reopen-container-item");
+      document.l10n.setAttributes(item, l10nId, args);
+      return item;
+    };
+    const createSeparator = () => {
+      const separator = document.createXULElement("menuseparator");
+      separator.classList.add("zen-reopen-container-item");
+      return separator;
+    };
+
+    const reopenItems = ContextualIdentityService.getPublicIdentities()
+      .filter(identity => identity.userContextId != currentUserContextId)
+      .map(identity => {
+        const item = createItem("tab-context-zen-reopen-in-container", {
+          container: ContextualIdentityService.getUserContextLabel(
+            identity.userContextId
+          ),
+        });
+        item.setAttribute("data-usercontextid", identity.userContextId);
+        item.classList.add(
+          "menuitem-iconic",
+          `identity-color-${identity.color}`,
+          `identity-icon-${identity.icon}`
+        );
+        item.disabled = contextTab.hidden;
+        return item;
+      });
+    document.getElementById("context_bookmarkTab").after(...reopenItems);
+
+    const moveItems = [createSeparator()];
+    if (currentUserContextId) {
+      const noContainer = createItem(
+        "tab-context-zen-reopen-without-container"
+      );
+      noContainer.setAttribute("data-usercontextid", "0");
+      noContainer.disabled = contextTab.hidden;
+      moveItems.push(noContainer);
+    }
+    const addContainer = createItem("user-context-add-container");
+    addContainer.addEventListener("command", () =>
+      window.ContainerCreationPanel.open(window, "tab_context_menu")
+    );
+    const manageContainers = createItem("user-context-manage-containers");
+    manageContainers.addEventListener("command", () =>
+      window.openPreferences("paneContainers", {
+        urlParams: { entrypoint: "tab_context_menu" },
+      })
+    );
+    moveItems.push(addContainer, manageContainers);
+    document.getElementById("moveTabOptionsMenu").append(...moveItems);
   }
 
   /**

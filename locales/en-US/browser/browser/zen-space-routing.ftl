@@ -31,6 +31,10 @@ tab-context-zen-add-domain-to-sr =
             [one] Add Route for Domain
             *[other] Add Route for Domains
         }
+tab-context-zen-reopen-in-container =
+    .label = Reopen in { $container }
+tab-context-zen-reopen-without-container =
+    .label = Reopen without Container
 
 # Heading for the read-only list of routes that come from a managed policy or a
 # declarative configuration (e.g. a dotfiles setup) rather than the dialog.
