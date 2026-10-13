@@ -1,12 +1,20 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_109_1042)">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M512 627.385C575.725 627.385 627.385 575.725 627.385 512C627.385 448.275 575.725 396.615 512 396.615C448.275 396.615 396.615 448.275 396.615 512C396.615 575.725 448.275 627.385 512 627.385ZM604.308 512C604.308 562.98 562.98 604.308 512 604.308C461.02 604.308 419.692 562.98 419.692 512C419.692 461.02 461.02 419.692 512 419.692C562.98 419.692 604.308 461.02 604.308 512Z" fill="#F76F53"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M712 512C712 622.457 622.457 712 512 712C401.543 712 312 622.457 312 512C312 401.543 401.543 312 512 312C622.457 312 712 401.543 712 512ZM512 673.538C601.215 673.538 673.538 601.215 673.538 512C673.538 422.785 601.215 350.462 512 350.462C422.785 350.462 350.462 422.785 350.462 512C350.462 601.215 422.785 673.538 512 673.538Z" fill="#F76F53"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M812 512C812 677.685 677.685 812 512 812C346.315 812 212 677.685 212 512C212 346.315 346.315 212 512 212C677.685 212 812 346.315 812 512ZM512 758.154C647.947 758.154 758.154 647.947 758.154 512C758.154 376.053 647.947 265.846 512 265.846C376.053 265.846 265.846 376.053 265.846 512C265.846 647.947 376.053 758.154 512 758.154Z" fill="#F76F53"/>
-</g>
-<defs>
-<clipPath id="clip0_109_1042">
-<rect width="1024" height="1024" fill="white"/>
-</clipPath>
-</defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Zen Bonsai icon: an open enso ring around a small bonsai, on Zen's
+       release background colour. Source for scripts/gen-bonsai-icons.sh. -->
+  <circle cx="256" cy="256" r="248" fill="#282A33"/>
+  <!-- Enso: a brush ring left open at the upper right. -->
+  <path d="M 372 112 A 186 186 0 1 0 412 172"
+        fill="none" stroke="#F2EDE4" stroke-width="26" stroke-linecap="round"/>
+  <!-- Pot. -->
+  <path d="M 170 352 H 342 L 326 392 H 186 Z" fill="#F2EDE4"/>
+  <rect x="160" y="340" width="192" height="16" rx="8" fill="#F2EDE4"/>
+  <!-- Trunk: an S-curve from the pot up to the canopy, with one branch. -->
+  <path d="M 262 344 C 248 300 300 288 284 248 C 272 220 232 222 236 186"
+        fill="none" stroke="#F2EDE4" stroke-width="22" stroke-linecap="round"/>
+  <path d="M 282 262 C 304 252 320 236 330 218"
+        fill="none" stroke="#F2EDE4" stroke-width="14" stroke-linecap="round"/>
+  <!-- Foliage pads. -->
+  <ellipse cx="226" cy="168" rx="74" ry="38" fill="#8FB996"/>
+  <ellipse cx="338" cy="206" rx="54" ry="28" fill="#8FB996"/>
+  <ellipse cx="184" cy="232" rx="44" ry="24" fill="#8FB996"/>
 </svg>

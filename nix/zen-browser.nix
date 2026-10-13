@@ -48,21 +48,20 @@ let
   # Read from surfer.json so the fetched Firefox source always matches the base
   # the Zen patches target (see the header comment). Only the hash above is
   # pinned manually.
-  firefox-version =
-    (builtins.fromJSON (builtins.readFile "${zen-src}/surfer.json")).version.version;
+  firefox-version = (builtins.fromJSON (builtins.readFile "${zen-src}/surfer.json")).version.version;
 
   # Hard-coded from the fork's surfer.json (kept in sync manually; these values
   # change very rarely). Drives the branding strings in assets.nix.
   surfer-config = {
-    name = "Zen Browser";
+    name = "Zen Bonsai";
     vendor = "Zen OSS Team";
     appId = "zen";
     brands = {
       release = {
         backgroundColor = "#282A33";
-        brandShorterName = "Zen";
-        brandShortName = "Zen";
-        brandFullName = "Zen Browser";
+        brandShorterName = "Zen Bonsai";
+        brandShortName = "Zen Bonsai";
+        brandFullName = "Zen Bonsai";
       };
       twilight = {
         backgroundColor = "#282A33";
@@ -75,11 +74,11 @@ let
 
   # Zen's own version lives in the release tag rather than a tracked file
   # (package.json is a placeholder 1.0.0), so this is hand-maintained and wants
-  # bumping alongside an upstream release. The -tst suffix marks this as the
+  # bumping alongside an upstream release. The -bonsai suffix marks this as the
   # tree-style-tabs fork and increments for fork-only fixes between upstream
   # releases. It names the store path and the reported application version; the
   # Firefox base is read from surfer.json and stays correct on its own.
-  zen-version = "1.23.2b-tst.1";
+  zen-version = "1.23.2b-bonsai.1";
 in
 {
   inherit

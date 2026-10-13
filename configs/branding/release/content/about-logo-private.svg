@@ -1,1 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?><svg id="e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 256 256"><defs><style>.h{filter:url(#f);}.i{fill:#202020;}.j{fill:#f2f0e3;}</style><filter id="f" x="-.4" y="1.68" width="256.8" height="256.8" filterUnits="userSpaceOnUse"><feOffset dx="0" dy="2"/><feGaussianBlur result="g" stdDeviation="2"/><feFlood flood-color="#000" flood-opacity=".5"/><feComposite in2="g" operator="in"/><feComposite in="SourceGraphic"/></filter></defs><g class="h"><rect class="i" x="5.75" y="5.7717" width="244.5" height="244.5" rx="46" ry="46"/></g><path class="j" d="M165.9933,146.3748c-15.6335,0-28.7244,11.028-31.9466,25.7088h-12.0935c-3.2222-14.6808-16.313-25.7088-31.9466-25.7088-18.0431,0-32.7232,14.68-32.7232,32.7232s14.68,32.7232,32.7232,32.7232c15.6335,0,28.7244-11.028,31.9466-25.7088h12.0935c3.2222,14.6808,16.313,25.7088,31.9466,25.7088,18.0431,0,32.7232-14.68,32.7232-32.7232s-14.68-32.7232-32.7232-32.7232ZM90.0067,197.7925c-10.3086,0-18.6945-8.3859-18.6945-18.6945s8.3859-18.6945,18.6945-18.6945,18.6945,8.3859,18.6945,18.6945-8.3859,18.6945-18.6945,18.6945ZM165.9933,197.7925c-10.3086,0-18.6945-8.3859-18.6945-18.6945s8.3859-18.6945,18.6945-18.6945,18.6945,8.3859,18.6945,18.6945-8.3859,18.6945-18.6945,18.6945Z"/><path class="j" d="M214.577,115.6777h-21.8838l-9.2611-65.4244c-.3037-2.145-1.5845-4.0301-3.4665-5.1073-1.882-1.0741-4.1554-1.2212-6.1595-.3914l-45.8062,18.9293-45.8062-18.9293c-2.0041-.8298-4.2775-.6826-6.1595.3914-1.882,1.0772-3.1627,2.9623-3.4665,5.1073l-9.2611,65.4244h-21.8838c-3.8735,0-7.0143,3.1408-7.0143,7.0143s3.1408,7.0143,7.0143,7.0143h173.1541c3.8735,0,7.0143-3.1408,7.0143-7.0143s-3.1408-7.0143-7.0143-7.0143ZM85.1906,61.1725l40.1289,16.5839c1.716.7077,3.645.7077,5.361,0l40.1289-16.5839,7.7142,54.5052h-101.0473l7.7142-54.5052Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Zen Bonsai icon: an open enso ring around a small bonsai, on Zen's
+       release background colour. Source for scripts/gen-bonsai-icons.sh. -->
+  <circle cx="256" cy="256" r="248" fill="#282A33"/>
+  <!-- Enso: a brush ring left open at the upper right. -->
+  <path d="M 372 112 A 186 186 0 1 0 412 172"
+        fill="none" stroke="#F2EDE4" stroke-width="26" stroke-linecap="round"/>
+  <!-- Pot. -->
+  <path d="M 170 352 H 342 L 326 392 H 186 Z" fill="#F2EDE4"/>
+  <rect x="160" y="340" width="192" height="16" rx="8" fill="#F2EDE4"/>
+  <!-- Trunk: an S-curve from the pot up to the canopy, with one branch. -->
+  <path d="M 262 344 C 248 300 300 288 284 248 C 272 220 232 222 236 186"
+        fill="none" stroke="#F2EDE4" stroke-width="22" stroke-linecap="round"/>
+  <path d="M 282 262 C 304 252 320 236 330 218"
+        fill="none" stroke="#F2EDE4" stroke-width="14" stroke-linecap="round"/>
+  <!-- Foliage pads. -->
+  <ellipse cx="226" cy="168" rx="74" ry="38" fill="#8FB996"/>
+  <ellipse cx="338" cy="206" rx="54" ry="28" fill="#8FB996"/>
+  <ellipse cx="184" cy="232" rx="44" ry="24" fill="#8FB996"/>
+</svg>

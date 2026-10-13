@@ -1,4 +1,4 @@
-# Maintaining this fork
+# Maintaining Zen Bonsai
 
 A Zen fork is a patchset against a patchset: Zen patches Firefox, and this fork
 patches Zen. Every Firefox version bump moves the ground under both. This
@@ -32,20 +32,28 @@ breaks it.
 
 ## App identity and versioning
 
-The fork keeps Zen's name, icons, `appId` and `binaryName`. It is a drop-in
+The fork ships as **Zen Bonsai**: its own displayed name (the release brand in
+`surfer.json`, mirrored by hand in `nix/zen-browser.nix`'s `surfer-config`) and
+its own icon (`configs/branding/release/bonsai.svg`, rendered by
+`scripts/gen-bonsai-icons.sh`). Everything that locates files or identifies the
+process stays Zen's: `appId` and `binaryName` (`zen`), `MOZ_APP_PROFILE`,
+`MOZ_APP_BASENAME`, the vendor and the window class. It is a drop-in
 replacement, and an existing Zen profile opens in it unchanged. Two
 consequences follow:
 
 The deb and rpm packages install to the same `/usr/bin/zen`, so each one
 declares `conflicts` and `provides` against `zen-browser`. Without that,
-installs fail in a way that looks like a packaging bug.
+installs fail in a way that looks like a packaging bug. They also conflict with
+and replace `zen-browser-tst`, the package name before the rename, so an
+install upgrades it in place.
 
 The profile is shared with stock Zen. This fork writes `zen-tree-id` and
 `zen-tree-parent-id` into the session; stock Zen reads that session happily but
 ignores those attributes, so a round trip through upstream Zen flattens the
 tree. Not data loss, but surprising.
 
-Versions follow upstream's tag with a fork suffix: `1.21.9b-tst.1`. The suffix
+Versions follow upstream's tag with a fork suffix: `1.23.2b-bonsai.1`
+(releases before the rename used `-tst.N`). The suffix
 increments for fork-only fixes between upstream releases. It lands in the git
 tag and in `zen-version` in `nix/zen-browser.nix`, which is hand-maintained
 because Zen's version lives in its release tag rather than a tracked file.
@@ -80,7 +88,7 @@ Everything fragile is concentrated in five files:
 | `src/browser/components/sessionstore/TabState-sys-mjs.patch` | session-store internals move |
 | `src/browser/components/sessionstore/TabAttributes-sys-mjs.patch` | added by the tree-tabs work |
 | `src/browser/components/sessionstore/SessionStore-sys-mjs.patch` | restore paths change |
-| `surfer.json` | Firefox version bump |
+| `surfer.json` | Firefox version bump; upstream also bumps `displayVersion` next to the fork's `brands.release` names. Take upstream's versions, keep the Zen Bonsai names |
 
 ### Resolving a patch-file conflict
 

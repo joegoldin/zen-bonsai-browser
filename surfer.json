@@ -1,5 +1,5 @@
 {
-  "name": "Zen Browser",
+  "name": "Zen Bonsai",
   "vendor": "Zen OSS Team",
   "appId": "zen",
   "binaryName": "zen",
@@ -16,9 +16,9 @@
   "brands": {
     "release": {
       "backgroundColor": "#282A33",
-      "brandShorterName": "Zen",
-      "brandShortName": "Zen",
-      "brandFullName": "Zen Browser",
+      "brandShorterName": "Zen Bonsai",
+      "brandShortName": "Zen Bonsai",
+      "brandFullName": "Zen Bonsai",
       "release": {
         "displayVersion": "1.23.2b",
         "github": {

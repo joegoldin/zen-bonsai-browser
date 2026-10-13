@@ -1,5 +1,5 @@
 {
-  description = "Zen Browser built from source — joegoldin fork (tree-style-tabs)";
+  description = "Zen Bonsai, an unofficial fork of Zen Browser with native tree-style tabs, built from source";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
@@ -16,7 +16,11 @@
   };
 
   outputs =
-    { self, nixpkgs, nixpkgs-newer }:
+    {
+      self,
+      nixpkgs,
+      nixpkgs-newer,
+    }:
     let
       systems = [
         "x86_64-linux"
@@ -52,7 +56,7 @@
           # `self` is the fork tree itself — the thing the build patches into the
           # Firefox source — so building this flake builds whatever commit is
           # referenced (locally: the checkout; from dotfiles: the pinned rev).
-          zen-browser-unwrapped = pkgs.callPackage ./nix/package.nix {
+          zen-bonsai-browser-unwrapped = pkgs.callPackage ./nix/package.nix {
             zen-src-tree = self;
             # The 26.5 SDK macOS needs, built by the *pinned* nixpkgs rather
             # than taken from nixpkgs-newer wholesale: apple-sdk's package.nix
@@ -81,8 +85,10 @@
           };
         in
         {
-          inherit zen-browser-unwrapped;
-          default = zen-browser-unwrapped;
+          inherit zen-bonsai-browser-unwrapped;
+          # The pre-rename name, kept so existing consumers keep evaluating.
+          zen-browser-unwrapped = zen-bonsai-browser-unwrapped;
+          default = zen-bonsai-browser-unwrapped;
         }
       );
 

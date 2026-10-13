@@ -3,9 +3,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/.
    -->
-<img src="./docs/assets/zen-dark.svg" width="100px" align="left">
+<img src="./docs/assets/zen-bonsai.svg" width="100px" align="left">
 
-### `Zen Browser` with tree-style tabs
+### Zen Bonsai
+
+An unofficial fork of [Zen Browser](https://github.com/zen-browser/desktop)
+with native tree-style tabs.
 
 [![Crowdin](https://badges.crowdin.net/zen-browser/localized.svg)](https://crowdin.com/project/zen-browser)
 
@@ -25,10 +28,12 @@ across a restart. Everything else is stock Zen, tracking upstream `dev`.
 > [!IMPORTANT]
 > ### Unofficial fork
 >
-> A fork of [zen-browser/desktop](https://github.com/zen-browser/desktop), not
-> affiliated with or endorsed by the Zen team.
+> Zen Bonsai is a fork of [zen-browser/desktop](https://github.com/zen-browser/desktop),
+> not affiliated with or endorsed by the Zen team. Zen Browser is the Zen team's
+> work; this fork adds to it, under the same MPL-2.0 license.
 >
-> It keeps upstream's application id and binary name, so it is a drop-in
+> It keeps upstream's application id, binary name (`zen`) and profile
+> directory, and changes only the displayed name and icon, so it is a drop-in
 > replacement and shares the same profile directory as stock Zen. Two
 > consequences:
 >
@@ -79,13 +84,15 @@ Builds Zen from source with `buildMozillaMach`, described below.
 
 ### Installing
 
-Releases are tagged `<upstream-tag>-tst.<n>`, so `1.21.9b-tst.1` is the first
-fork build on top of upstream's `1.21.9b`.
+Releases are tagged `<upstream-tag>-bonsai.<n>`, so `1.23.2b-bonsai.1` is the first
+fork build on top of upstream's `1.23.2b`. Earlier releases used a `-tst.<n>`
+suffix and the package name `zen-browser-tst`.
 
 - Tarball, deb and rpm are attached to each
-  [release](https://github.com/joegoldin/zen-browser-desktop/releases). The deb
-  and rpm install to `/opt/zen-tst` with a `/usr/bin/zen` symlink, and both
-  declare `conflicts`/`provides` against `zen-browser`.
+  [release](https://github.com/joegoldin/zen-bonsai-browser/releases). The deb
+  and rpm install to `/opt/zen-bonsai` with a `/usr/bin/zen` symlink, and both
+  declare `conflicts`/`provides` against `zen-browser`. They also replace the
+  pre-rename `zen-browser-tst` package, so installing one upgrades it in place.
 - On Nix, see below.
 
 ### Nix
@@ -95,20 +102,21 @@ Firefox tarball with this fork's patchset. Nothing prebuilt is fetched, so the
 binary you run is one you compiled from a source tree you can read.
 
 ```bash
-nix build github:joegoldin/zen-browser-desktop#zen-browser-unwrapped
+nix build github:joegoldin/zen-bonsai-browser#zen-bonsai-browser-unwrapped
 ```
 
-`zen-browser-unwrapped` is an unwrapped Firefox-style derivation, which is the
+`zen-bonsai-browser-unwrapped` (also exported under its old name,
+`zen-browser-unwrapped`) is an unwrapped Firefox-style derivation, which is the
 shape every Firefox wrapper in nixpkgs and home-manager expects. Wrap it
 yourself if all you want is the browser:
 
 ```nix
 {
-  inputs.zen-src.url = "github:joegoldin/zen-browser-desktop/dev";
+  inputs.zen-src.url = "github:joegoldin/zen-bonsai-browser/dev";
 }
 
 # then, in a module:
-home.packages = [ (pkgs.wrapFirefox inputs.zen-src.packages.${pkgs.system}.zen-browser-unwrapped { }) ];
+home.packages = [ (pkgs.wrapFirefox inputs.zen-src.packages.${pkgs.system}.zen-bonsai-browser-unwrapped { }) ];
 ```
 
 #### With home-manager
@@ -128,7 +136,7 @@ so it will drive this fork's source build instead:
     enable = true;
     # The browser you compiled, rather than the prebuilt tarball the flake
     # would otherwise fetch from upstream's releases.
-    unwrappedPackage = inputs.zen-src.packages.${pkgs.system}.zen-browser-unwrapped;
+    unwrappedPackage = inputs.zen-src.packages.${pkgs.system}.zen-bonsai-browser-unwrapped;
     # The default is derived from that flake's own variant names, none of
     # which this is.
     icon = "zen-browser";
@@ -176,7 +184,7 @@ in [docs/fork-maintenance.md](./docs/fork-maintenance.md).
 ### Contributing
 
 Bugs and feature requests for the fork's own behaviour go to
-[this repo's issues](https://github.com/joegoldin/zen-browser-desktop/issues).
+[this repo's issues](https://github.com/joegoldin/zen-bonsai-browser/issues).
 Anything that reproduces on stock Zen belongs
 [upstream](https://github.com/zen-browser/desktop/issues) instead.
 

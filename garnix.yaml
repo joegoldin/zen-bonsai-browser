@@ -12,7 +12,7 @@
 # aarch64-linux so that platform can build locally; CI stays away from it.
 builds:
   include:
-    - "packages.x86_64-linux.zen-browser-unwrapped"
+    - "packages.x86_64-linux.zen-bonsai-browser-unwrapped"
 
 # A new push to the same branch cancels the older push's unfinished work.
 # A Firefox build holds a builder for hours, so without this a busy day queues

@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Fork version, e.g. 1.21.9b-tst.1"
+        description: "Fork version, e.g. 1.23.2b-bonsai.1"
         required: true
         type: string
 
@@ -52,8 +52,8 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          if ! printf '%s' "$VERSION" | grep -qE '^[0-9][^-]*-tst\.[0-9]+$'; then
-            echo "VERSION must look like 1.21.9b-tst.1, got: $VERSION" >&2
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9][^-]*-bonsai\.[0-9]+$'; then
+            echo "VERSION must look like 1.23.2b-bonsai.1, got: $VERSION" >&2
             exit 1
           fi
 
@@ -179,8 +179,8 @@ jobs:
           else
             gh release create "$VERSION" \
               --target "$GITHUB_SHA" \
-              --title "$VERSION" \
-              --notes "Zen with native tree-style tabs. Unofficial fork of zen-browser/desktop." \
+              --title "Zen Bonsai $VERSION" \
+              --notes "Zen Bonsai: Zen Browser with native tree-style tabs. Unofficial fork of zen-browser/desktop." \
               ./zen.linux-x86_64.tar.xz
           fi
 
@@ -207,9 +207,9 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          mkdir -p root/opt/zen-tst root/usr/bin root/usr/share/applications
-          tar -xJf zen.linux-x86_64.tar.xz -C root/opt/zen-tst --strip-components=1
-          ln -s /opt/zen-tst/zen root/usr/bin/zen
+          mkdir -p root/opt/zen-bonsai root/usr/bin root/usr/share/applications
+          tar -xJf zen.linux-x86_64.tar.xz -C root/opt/zen-bonsai --strip-components=1
+          ln -s /opt/zen-bonsai/zen root/usr/bin/zen
           cp packaging/zen.desktop root/usr/share/applications/zen.desktop
 
       - name: Build deb and rpm
@@ -220,12 +220,12 @@ jobs:
           # Both halves of the split below are meaningless unless VERSION has
           # the documented shape. Without this check a bare "1.21.9b" splits
           # into version=1.21.9b iteration=1.21.9b and builds happily.
-          if ! printf '%s' "$VERSION" | grep -qE '^[0-9][^-]*-tst\.[0-9]+$'; then
-            echo "VERSION must look like 1.21.9b-tst.1, got: $VERSION" >&2
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9][^-]*-bonsai\.[0-9]+$'; then
+            echo "VERSION must look like 1.23.2b-bonsai.1, got: $VERSION" >&2
             exit 1
           fi
           # rpm treats a dash as the version/release separator and rewrites any
-          # it finds, so the -tst.N suffix becomes the release field there. deb
+          # it finds, so the -bonsai.N suffix becomes the release field there. deb
           # has no such restriction and keeps the version string whole.
           rpm_version="${VERSION%%-*}"
           rpm_iteration="${VERSION#*-}"
@@ -254,14 +254,16 @@ jobs:
             fi
             fpm -s dir -t "$target" \
               "${deps[@]}" \
-              -n zen-browser-tst \
+              -n zen-bonsai-browser \
               -v "$ver" \
               --iteration "$iter" \
-              --description "Zen Browser with native tree-style tabs (unofficial fork)" \
-              --url "https://github.com/joegoldin/zen-browser-desktop" \
+              --description "Zen Bonsai: an unofficial fork of Zen Browser with native tree-style tabs" \
+              --url "https://github.com/joegoldin/zen-bonsai-browser" \
               --license MPL-2.0 \
               --conflicts zen-browser \
               --provides zen-browser \
+              --conflicts zen-browser-tst \
+              --replaces zen-browser-tst \
               -C root .
           done
 

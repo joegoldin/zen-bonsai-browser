@@ -16,7 +16,7 @@ let
   base =
     (buildMozillaMach {
       inherit (zen-browser-src) extraNativeBuildInputs extraPostPatch;
-      pname = "zen-browser";
+      pname = "zen-bonsai-browser";
       allowAddonSideload = true;
       applicationName = "Zen";
       binaryName = "zen";
@@ -38,8 +38,8 @@ let
       meta = {
         # since Firefox 60, build on 32-bit platforms fails with "out of memory".
         broken = stdenv.buildPlatform.is32bit;
-        description = "Firefox fork with a focus on looks and privacy (tree-style-tabs build)";
-        homepage = "https://zen-browser.app";
+        description = "Zen Bonsai: an unofficial fork of Zen Browser with native tree-style tabs";
+        homepage = "https://github.com/joegoldin/zen-bonsai-browser";
         license = lib.licenses.mpl20;
         mainProgram = "zen";
         maxSilent = 14400; # 4h, double the default of 7200s (c.f. #129212, #129115)
