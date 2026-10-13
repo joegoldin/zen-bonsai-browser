@@ -93,6 +93,10 @@ suffix and the package name `zen-browser-tst`.
   and rpm install to `/opt/zen-bonsai` with a `/usr/bin/zen` symlink, and both
   declare `conflicts`/`provides` against `zen-browser`. They also replace the
   pre-rename `zen-browser-tst` package, so installing one upgrades it in place.
+- On Arch, install
+  [`zen-bonsai-browser-bin`](https://aur.archlinux.org/packages/zen-bonsai-browser-bin)
+  from the AUR. The release workflow keeps it in step with each release;
+  `packaging/aur/` here is its source.
 - On Nix, see below.
 
 ### Nix

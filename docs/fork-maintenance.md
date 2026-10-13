@@ -41,11 +41,11 @@ process stays Zen's: `appId` and `binaryName` (`zen`), `MOZ_APP_PROFILE`,
 replacement, and an existing Zen profile opens in it unchanged. Two
 consequences follow:
 
-The deb and rpm packages install to the same `/usr/bin/zen`, so each one
+The AUR, deb and rpm packages install to the same `/usr/bin/zen`, so each one
 declares `conflicts` and `provides` against `zen-browser`. Without that,
 installs fail in a way that looks like a packaging bug. They also conflict with
-and replace `zen-browser-tst`, the package name before the rename, so an
-install upgrades it in place.
+and replace their pre-rename names (`zen-browser-tst`, and
+`zen-browser-tst-bin` on the AUR), so an install upgrades in place.
 
 The profile is shared with stock Zen. This fork writes `zen-tree-id` and
 `zen-tree-parent-id` into the session; stock Zen reads that session happily but
