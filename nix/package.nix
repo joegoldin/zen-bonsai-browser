@@ -58,15 +58,20 @@ let
         # also reference apple-sdk_26. Inert on Linux, where the SDK is never
         # forced.
         inherit apple-sdk_26;
-        # ltoSupport + pgoSupport stay at buildMozillaMach's defaults (true on
-        # x86_64-linux): PGO gives profile-guided optimization, and ltoSupport wires
-        # up the LLVM/lld bintools. We only change the LTO *mode* below.
+        # ltoSupport stays at buildMozillaMach's default (true on x86_64-linux):
+        # it wires up the LLVM/lld bintools. We only change the LTO *mode* below.
+        #
+        # PGO is off for now. On Firefox 157 the instrumented browser exits 1
+        # during profileserver.py's profile-initialization run (the quit.html
+        # load before profiling), failing every build since 1.22.3b. Turn it
+        # back on once that is fixed.
+        pgoSupport = false;
       };
 in
 # Full cross-LTO (--enable-lto=cross,full, what ltoSupport injects) links libxul
 # in a single ~32 GB process and OOM-thrashed this 62 GB box for 14 h. Rewrite it
 # to thin cross-LTO: per-module, parallel, bounded link memory, for ~90-95% of
-# the runtime perf. PGO (the second compile pass + profile run) stays on.
+# the runtime perf.
 base.overrideAttrs (old: {
   # Firefox 157 dropped the ffmpeg option (toolkit/moz.configure now enables
   # it for every non-Android, non-Windows target), but buildMozillaMach still
