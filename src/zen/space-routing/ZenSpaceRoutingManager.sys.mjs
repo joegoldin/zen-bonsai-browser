@@ -777,7 +777,7 @@ class nsZenSpaceRoutingManager {
       case "regex": {
         let unmodifiedReference = route.reference;
         try {
-          // Use unmodified parameters for the regex test
+          // Case insensitive match (see gh-15835)
           const regex = new RegExp(unmodifiedReference, "i");
           if (regex.test(uriString)) {
             return true;
