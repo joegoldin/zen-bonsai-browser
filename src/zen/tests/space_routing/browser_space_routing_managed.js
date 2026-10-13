@@ -35,7 +35,7 @@ add_task(async function test_managed_route_resolves_space_by_name() {
       targetRoute: work.uuid,
       targetWorkspaceName: work.name,
     },
-    "A managed route resolves its target Space by name to that Space's id"
+    "A managed route resolves its target Space by name to that Space's id",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -54,7 +54,7 @@ add_task(async function test_managed_route_wins_over_user_route() {
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://github.com/zen", {}, win),
     work.uuid,
-    "A managed route is evaluated before, and wins over, a matching user route"
+    "A managed route is evaluated before, and wins over, a matching user route",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -73,17 +73,17 @@ add_task(async function test_managed_openin_literal_id_and_most_recent() {
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://by-id.example", {}, win),
     "ws-literal-id",
-    "A literal `openIn` Space id is returned as-is"
+    "A literal `openIn` Space id is returned as-is",
   );
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://by-default.example", {}, win),
     "most-recent-space",
-    "An omitted target defaults to most-recent-space"
+    "An omitted target defaults to most-recent-space",
   );
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://by-mru.example", {}, win),
     "most-recent-space",
-    "An explicit most-recent-space target is honored"
+    "An explicit most-recent-space target is honored",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -103,7 +103,7 @@ add_task(async function test_managed_unknown_space_name_falls_back() {
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://github.com", {}, win),
     "most-recent-space",
-    "A name that matches no Space falls back to most-recent-space"
+    "A name that matches no Space falls back to most-recent-space",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -121,12 +121,12 @@ add_task(async function test_managed_default_match_type_is_contains() {
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://api.github.com/v3", {}, win),
     "ws-a",
-    "A managed route with no matchType behaves as 'contains'"
+    "A managed route with no matchType behaves as 'contains'",
   );
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://api.gitlab.com/v4", {}, win),
     "ws-b",
-    "An unrecognized matchType is coerced to 'contains'"
+    "An unrecognized matchType is coerced to 'contains'",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -142,7 +142,7 @@ add_task(async function test_managed_object_with_routes_array_is_accepted() {
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://github.com", {}, win),
     "ws-obj",
-    "An object with a `routes` array is accepted, not just a bare array"
+    "An object with a `routes` array is accepted, not just a bare array",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -161,12 +161,12 @@ add_task(async function test_managed_invalid_entries_are_skipped() {
   Assert.equal(
     gZenSpaceRoutingManager.getManagedRoutes().length,
     1,
-    "Entries without a usable reference are dropped"
+    "Entries without a usable reference are dropped",
   );
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://github.com", {}, win),
     "ws-valid",
-    "The single valid managed entry still routes"
+    "The single valid managed entry still routes",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -181,12 +181,12 @@ add_task(async function test_malformed_json_is_ignored() {
   Assert.deepEqual(
     gZenSpaceRoutingManager.getManagedRoutes(),
     [],
-    "A malformed managed-routes pref yields no managed routes"
+    "A malformed managed-routes pref yields no managed routes",
   );
   Assert.equal(
     gZenSpaceRoutingManager.routeUri("https://github.com", {}, win),
     "ws-user",
-    "Routing still falls through to user routes when the pref is malformed"
+    "Routing still falls through to user routes when the pref is malformed",
   );
 
   await SpecialPowers.popPrefEnv();
@@ -198,69 +198,13 @@ add_task(async function test_cleared_pref_has_no_managed_routes() {
   Assert.equal(
     gZenSpaceRoutingManager.getManagedRoutes().length,
     1,
-    "Managed routes are present while the pref is set"
+    "Managed routes are present while the pref is set",
   );
   await SpecialPowers.popPrefEnv();
 
   Assert.deepEqual(
     gZenSpaceRoutingManager.getManagedRoutes(),
     [],
-    "Managed routes disappear once the pref is cleared"
+    "Managed routes disappear once the pref is cleared",
   );
-});
-
-add_task(async function test_managed_routes_render_readonly_in_dialog() {
-  clearAllRoutes();
-  await pushManagedRoutes([
-    { reference: "github.com", matchType: "contains", openInSpace: "Work" },
-  ]);
-
-  const dlg = await openRoutingDialog();
-  try {
-    const doc = dlg.document;
-
-    await TestUtils.waitForCondition(
-      () => doc.querySelector(".sr-managed-container"),
-      "The managed route renders a read-only row"
-    );
-
-    Assert.equal(
-      doc.querySelectorAll(".sr-managed-container").length,
-      1,
-      "Exactly one managed row is rendered"
-    );
-    ok(
-      doc.querySelector(".sr-managed-header"),
-      "The managed section header is shown"
-    );
-    Assert.equal(
-      doc.querySelector(".sr-managed-reference").getAttribute("value"),
-      "github.com",
-      "The managed row shows the configured reference"
-    );
-    Assert.equal(
-      doc.querySelector(".sr-managed-target").getAttribute("value"),
-      "Work",
-      "The managed row shows the target Space name"
-    );
-    Assert.equal(
-      gZenSpaceRoutingManager.getAllRoutes().length,
-      0,
-      "Managed routes are not part of the editable (user) routes"
-    );
-    Assert.equal(
-      doc.querySelectorAll(".sr-rule-container").length,
-      0,
-      "No editable route rows are rendered for managed routes"
-    );
-    Assert.equal(
-      doc.getElementById("sr-empty-content").style.display,
-      "none",
-      "The empty-state placeholder is hidden when managed routes exist"
-    );
-  } finally {
-    await closeRoutingDialog(dlg);
-    await SpecialPowers.popPrefEnv();
-    clearAllRoutes();
-  }
 });

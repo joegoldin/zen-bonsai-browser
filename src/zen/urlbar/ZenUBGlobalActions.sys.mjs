@@ -216,7 +216,9 @@ const globalActionsTemplate = [
     command: "History:RestoreLastClosedTabOrWindowOrSession",
     icon: "chrome://browser/skin/zen-icons/history.svg",
     isAvailable: window => {
-      return lazy.SessionStore.getClosedTabCount(window) > 0;
+      return !!lazy.SessionStore.getClosedTabCount({
+        sourceWindow: window,
+      }).length;
     },
   },
   {
@@ -341,6 +343,25 @@ export function formatValueSync(l10nId) {
   return lazy.l10n.formatValueSync(l10nId);
 }
 
+const labels = new Map();
+
+Services.obs.addObserver(() => labels.clear(), "intl:app-locales-changed");
+
+/**
+ * @param {string} l10nId - The message holding an action's text
+ * @returns {string} What it says, in the language in use
+ */
+export function labelFor(l10nId) {
+  let label = labels.get(l10nId);
+  if (label === undefined) {
+    label = formatValueSync(l10nId);
+    if (label) {
+      labels.set(l10nId, label);
+    }
+  }
+  return label;
+}
+
 export const globalActions = globalActionsTemplate.map(action => ({
   isAvailable: window => {
     return (
@@ -356,6 +377,6 @@ export const globalActions = globalActionsTemplate.map(action => ({
   extraPayload: {},
   ...action,
   get label() {
-    return formatValueSync(action.l10nId);
+    return labelFor(action.l10nId);
   },
 }));

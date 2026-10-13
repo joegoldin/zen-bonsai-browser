@@ -6,8 +6,10 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   canDrawThumbnail: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   blockedText: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  canRetry: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   confirmUnblock: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   isBlocked: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
+  retryDownload: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   transferText: "moz-src:///zen/library/ZenLibraryUtils.sys.mjs",
   DownloadsCommon:
     "moz-src:///browser/components/downloads/DownloadsCommon.sys.mjs",
@@ -323,7 +325,13 @@ class ZenLibraryDownloadStack {
     }
     if (download.succeeded) {
       lazy.DownloadsCommon.openDownload(download).catch(console.error);
-    } else if (download.source?.url) {
+      return;
+    }
+    if (lazy.canRetry(download)) {
+      lazy.retryDownload(download, this.#window);
+      return;
+    }
+    if (download.source?.url) {
       this.#window.openTrustedLinkIn(download.source.url, "tab");
     }
   }
@@ -406,6 +414,8 @@ class ZenLibraryDownloadStack {
         "--download-image",
         `${preview ? `url('${preview}'), ` : ""}url('${this.#iconUrl(download)}')`
       );
+    } else {
+      badge.style.removeProperty("--download-image");
     }
     badge.querySelector(
       ".zen-library-download-progress-arc"
@@ -454,6 +464,9 @@ class ZenLibraryDownloadStack {
     const index = this.#downloads.indexOf(download);
     if (index !== -1) {
       this.#downloads.splice(index, 1);
+    }
+    if (!this.#downloads.length) {
+      this.#recentNewDownload = false;
     }
     this.#update();
   }
@@ -546,7 +559,7 @@ class ZenLibraryDownloadStack {
   #statusText(download) {
     const strings = lazy.DownloadsCommon.strings;
     if (!download.stopped) {
-      return lazy.transferText(download);
+      return lazy.transferText(download, { speed: true });
     }
     if (download.deleted) {
       return strings.fileDeleted;
@@ -601,6 +614,11 @@ class ZenLibraryDownloadStack {
       items.push({
         l10nId: "downloads-cmd-resume",
         onClick: () => download.start?.().catch(() => {}),
+      });
+    } else if (lazy.canRetry(download)) {
+      items.push({
+        l10nId: "library-downloads-menu-retry",
+        onClick: () => lazy.retryDownload(download, this.#window),
       });
     }
     if (fileExists) {

@@ -2182,7 +2182,7 @@
       ) {
         this.clearDragOverVisuals();
         dropElement = null;
-        return [dropElement, dropBefore];
+        return [dropBefore, dropElement];
       }
       if (
         isTabGroupLabel(draggedTab) &&
@@ -2194,7 +2194,7 @@
       ) {
         dropElement = null;
         this.clearDragOverVisuals();
-        return [dropElement, dropBefore];
+        return [dropBefore, dropElement];
       }
       if (
         isTab(dropElement) ||
@@ -2301,7 +2301,6 @@
           event.target
             .closest(".zen-essentials-container")
             .appendChild(this._fakeEssentialTab);
-          gZenWorkspaces.updateTabsContainers();
           pinnedTabs.push(this._fakeEssentialTab);
           this._fakeEssentialTab.getBoundingClientRect(); // Initialize layout
         }

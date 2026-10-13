@@ -29,14 +29,16 @@
 
   --zen-boosts-primary-border-color: light-dark(#ededef, #3a3a3a);
 
+  --zen-boosts-footer-background: light-dark(#f5f5f7, #1c1c1e);
+
   --zen-boosts-color-picker-background: light-dark(#fbfbfdea, #1c1c1eea);
   --zen-boosts-color-picker-pattern-color: light-dark(#e3e9e4, #3a3a3a);
 
   appearance: none;
   border: none;
 
-  min-height: 582px;
-  max-height: 582px;
+  min-height: 652px;
+  max-height: 652px;
 }
 
 #zenBoostWindow[editor="boost"] {
@@ -139,13 +141,13 @@ body {
   user-select: none;
 
   width: 100%;
-  min-height: 582px;
+  min-height: 652px;
   height: 100%;
   padding: 0;
   margin: 0;
 
   & button {
-    border-radius: 6px;
+    border-radius: 8px;
 
     padding: 0 !important;
     min-width: fit-content !important;
@@ -243,6 +245,8 @@ body {
 
   max-width: 100px;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #zen-boost-name-text {
@@ -275,6 +279,34 @@ body {
   background-color: var(--zen-boosts-primary-background);
 
   -moz-window-dragging: drag;
+  & > * {
+    -moz-window-dragging: no-drag;
+  }
+
+  & #zen-boost-code {
+    background-color: #1d1b1b !important;
+    color: #d6d6d6;
+  }
+}
+
+#zen-boost-footer-wrapper {
+  -moz-window-dragging: drag;
+
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+  align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+
+  background-color: var(--zen-boosts-footer-background);
+  border-top: solid 1px var(--zen-boosts-primary-border-color);
+
+  @media (-moz-windows-mica) {
+    background-color: var(--zen-boosts-mica-background);
+    border-top: none;
+  }
+
   & > * {
     -moz-window-dragging: no-drag;
   }
@@ -319,8 +351,10 @@ body {
   left: 5px;
 }
 
-#zen-boost-zap {
-  & #zen-boost-zap-value {
+#zen-boost-zap,
+#zen-boost-focus {
+  & #zen-boost-zap-value,
+  & #zen-boost-focus-value {
     text-align: right;
     right: 8px;
     margin: auto;
@@ -332,7 +366,8 @@ body {
   }
 }
 
-#zen-boost-zap[hideicon="true"] {
+#zen-boost-zap[hideicon="true"],
+#zen-boost-focus[hideicon="true"] {
   list-style: none;
   list-style-type: none;
 
@@ -565,11 +600,11 @@ body {
     height: 1px;
     width: auto;
 
-    margin-right: 12px;
-    margin-left: 12px;
+    margin-right: 6px;
+    margin-left: 6px;
     margin-top: 2px;
 
-    opacity: 0.25;
+    opacity: 0.15;
 
     border-top: solid 1px #9a9a9a;
   }
@@ -578,7 +613,6 @@ body {
     filter: none;
     color: rgba(0, 0, 0, 0.6);
     border-radius: 50px;
-    transition: 0.1s transform ease;
     font-size: 12px;
     padding: 2px;
     align-items: center;
@@ -586,12 +620,10 @@ body {
     display: flex;
     height: 26px;
     width: 26px;
-    transform-origin: center center;
     aspect-ratio: 1;
 
     &:hover {
       background-color: #9a9a9a30;
-      transform: scale(1.1);
     }
   }
 }

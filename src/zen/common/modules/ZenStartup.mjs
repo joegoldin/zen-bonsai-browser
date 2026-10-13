@@ -166,11 +166,20 @@ class ZenStartup {
 
   #checkForWelcomePage() {
     const kWelcomeScreenSeenPref = "zen.welcome-screen.seen";
+    const kWelcomeScreenAlwaysShowPref = "zen.welcome-screen.always-show";
     if (Services.env.get("MOZ_HEADLESS")) {
       Services.prefs.setBoolPref(kWelcomeScreenSeenPref, true);
       return;
     }
-    if (!Services.prefs.getBoolPref(kWelcomeScreenSeenPref, false)) {
+    // The welcome wizard resizes and locks the window, which breaks the fullscreen
+    // kiosk window. Firefox's ASRouter stays off in kiosk mode too (gh-15976).
+    if (BrowserHandler.kiosk) {
+      return;
+    }
+    if (
+      !Services.prefs.getBoolPref(kWelcomeScreenSeenPref, false) ||
+      Services.prefs.getBoolPref(kWelcomeScreenAlwaysShowPref, false)
+    ) {
       Services.prefs.setBoolPref(kWelcomeScreenSeenPref, true);
       Services.prefs.setStringPref(
         "zen.updates.last-build-id",
