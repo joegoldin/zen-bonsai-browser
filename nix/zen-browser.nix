@@ -108,15 +108,13 @@ in
     # init.rs hunk — "Hunk #1 FAILED at 204", fails even at -F3), which git apply
     # and surfer apply cleanly. git apply also requires exact context, so a
     # Firefox-base drift surfaces as a clean failure rather than a silent fuzz.
-    # Skip the external backports that already landed upstream in Firefox
-    # ${firefox-version} (their code is present in the pristine source, so
-    # re-applying fails as "already applied"; surfer gets away with it because it
-    # reverse-applies every patch first). Re-check this skip list whenever the
-    # pinned Firefox version changes.
+    # An external backport that has since landed in Firefox ${firefox-version}
+    # fails here as "already applied" (surfer gets away with it because it
+    # reverse-applies every patch first); exclude it by name below until
+    # upstream Zen drops it, and re-check whenever the Firefox version changes.
     rsync -r --chmod=u+w --exclude "*.patch" "${zen-src}/src/" .
 
     find "${zen-src}/src" -type f -name "*.patch" \
-      ! -name "issue_14710.patch" \
       | sort | while read -r patch_name; do
       git apply -p1 "$patch_name"
     done
