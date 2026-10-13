@@ -1,20 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Zen Bonsai icon: an open enso ring around a small bonsai, on Zen's
-       release background colour. Source for scripts/gen-bonsai-icons.sh. -->
-  <circle cx="256" cy="256" r="248" fill="#282A33"/>
-  <!-- Enso: a brush ring left open at the upper right. -->
-  <path d="M 372 112 A 186 186 0 1 0 412 172"
-        fill="none" stroke="#F2EDE4" stroke-width="26" stroke-linecap="round"/>
-  <!-- Pot. -->
-  <path d="M 170 352 H 342 L 326 392 H 186 Z" fill="#F2EDE4"/>
-  <rect x="160" y="340" width="192" height="16" rx="8" fill="#F2EDE4"/>
-  <!-- Trunk: an S-curve from the pot up to the canopy, with one branch. -->
-  <path d="M 262 344 C 248 300 300 288 284 248 C 272 220 232 222 236 186"
-        fill="none" stroke="#F2EDE4" stroke-width="22" stroke-linecap="round"/>
-  <path d="M 282 262 C 304 252 320 236 330 218"
-        fill="none" stroke="#F2EDE4" stroke-width="14" stroke-linecap="round"/>
-  <!-- Foliage pads. -->
-  <ellipse cx="226" cy="168" rx="74" ry="38" fill="#8FB996"/>
-  <ellipse cx="338" cy="206" rx="54" ry="28" fill="#8FB996"/>
-  <ellipse cx="184" cy="232" rx="44" ry="24" fill="#8FB996"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Zen Bonsai icon. Zen's rounded square and its three ring weights, the
+       rings opened a quarter turn further each step inward and raised into a
+       canopy over a leaning trunk; each ring is cut back where the trunk
+       passes. Source for scripts/gen-bonsai-icons.sh. -->
+  <rect width="1024" height="1024" rx="228" fill="#202020"/>
+  <g fill="none" stroke="#F2F0E3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 428.7 702.4 A 284.8 284.8 0 1 1 611.7 163.2" stroke-width="70"/>
+    <path d="M 779.6 332.6 A 284.8 284.8 0 0 1 611.7 696.8" stroke-width="70"/>
+    <path d="M 424.5 598.2 A 189.6 189.6 0 1 1 694.7 480.7" stroke-width="50"/>
+    <path d="M 402.8 439.6 A 109.6 109.6 0 1 1 570.9 522.4" stroke-width="30"/>
+    <path d="M 512.0 396.4 Q 470.0 653.2 596 900" stroke-width="50"/>
+  </g>
 </svg>

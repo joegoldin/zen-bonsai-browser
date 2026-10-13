@@ -55,9 +55,11 @@ The deb and rpm keep `conflicts`/`provides zen-browser`, and add
 
 ## Icon
 
-- Source: `configs/branding/release/bonsai.svg`, a flat, simple bonsai inside
-  an open ensō circle. It nods to Zen's circular mark without copying it, and
-  stays legible at 16 px.
+- Source: `configs/branding/release/bonsai.svg`. It keeps Zen's icon frame:
+  the dark rounded square, the cream colour and the three ring weights. Each
+  ring opens a quarter turn further than the one outside it, and the rings are
+  raised and scaled to 80% into a canopy over a leaning trunk; each ring is cut
+  back where the trunk passes, so the two never touch.
 - Generator: `scripts/gen-bonsai-icons.sh` renders every branding asset from the
   SVG: `logo{16,22,24,32,48,64,128,256,512,1024}.png`, `logo.png`,
   `logo-mac.png`, `firefox.ico`, `firefox64.ico`, `firefox.icns`,
