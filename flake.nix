@@ -3,15 +3,18 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
-    # Build inputs configure is strict about, where nixos-26.05 lags: cbindgen
-    # below 0.29.4, and nss below the version Firefox bundles (configure wants
-    # system nss >= security/nss/lib/nss/nss.h, 3.129 on Firefox 157), and — on
-    # macOS — an Apple SDK below 26.5. Pinned to a master commit because
-    # nixos-unstable was still at nss 3.128 when Firefox 157 landed. The SDK is
-    # not a matter of waiting: nixpkgs bumped apple-sdk_26 to 26.5 in a81408d1
-    # (2026-05-17), after the 26.05 branch-off, and never backported it, so both
-    # nixos-26.05 and nixpkgs-26.05-darwin are stuck at 26.4 for the life of
-    # the release.
+    # Only for the macOS Apple SDK, which configure wants at 26.5 or newer:
+    # nixpkgs bumped apple-sdk_26 to 26.5 in a81408d1 (2026-05-17), after the
+    # 26.05 branch-off, and never backported it, so both nixos-26.05 and
+    # nixpkgs-26.05-darwin are stuck at 26.4 for the life of the release.
+    #
+    # Never take Linux build inputs from here. nss_latest used to come from
+    # this pin, and an NSS built with its newer toolchain (gcc 16) fails to
+    # load its soft token inside Firefox's sandboxed socket process: the socket
+    # process exits 1 during startup, and under PGO profiling
+    # (MOZ_CRASHREPORTER_SHUTDOWN=1) that aborts the profile run. nixos-26.05
+    # now carries the NSS and cbindgen Firefox 158 needs, built with the same
+    # toolchain as everything else.
     nixpkgs-newer.url = "github:NixOS/nixpkgs/0a59a4df5fb1b3ff45c63d7d9d308686e85cda55";
   };
 
@@ -30,23 +33,7 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
-      # An overlay rather than extraNativeBuildInputs entries: buildMozillaMach
-      # (and mach's own configure, which the lint app also runs) reach for
-      # rust-cbindgen and nss_latest themselves, so they have to be replaced at
-      # the pkgs level for configure to see the newer ones.
-      pkgsFor =
-        system:
-        import nixpkgs {
-          inherit system;
-          overlays = [
-            (_final: _prev: {
-              inherit (nixpkgs-newer.legacyPackages.${system})
-                rust-cbindgen
-                nss_latest
-                ;
-            })
-          ];
-        };
+      pkgsFor = system: nixpkgs.legacyPackages.${system};
     in
     {
       packages = forAllSystems (
@@ -162,7 +149,7 @@
                 llvmPackages.llvm
                 # nasm assembles the bundled media codecs; configure checks it.
                 nasm
-                # The overlayed 0.29.4; configure refuses anything older.
+                # configure refuses anything older than 0.29.4.
                 rust-cbindgen
                 # mach prefers `uv` over pip for building its virtualenvs
                 # (mach/site.py: use_uv() just checks shutil.which("uv")). The

@@ -159,13 +159,13 @@ it before.
 fetched source always matches the base the patches target. The source hash next
 to it is pinned by hand and has to move with it.
 
-`flake.nix` keeps a second, newer nixpkgs for the versions configure insists
-on. The overlay takes `rust-cbindgen` and `nss_latest` from it: configure
-requires a system NSS at least as new as the one Firefox bundles, 3.129 on
-Firefox 157, and `nixos-26.05` is behind that. The macOS `apple-sdk_26` it also
-supplies will not catch up at all: 26.05 branched before nixpkgs bumped that to
-26.5 and never took the backport, so it stays at 26.4 for the life of the
-release.
+`flake.nix` keeps a second, newer nixpkgs only for the macOS `apple-sdk_26`,
+which `nixos-26.05` will not catch up on: 26.05 branched before nixpkgs bumped
+it to 26.5 and never took the backport, so it stays at 26.4 for the life of the
+release. Everything Linux builds against, NSS and cbindgen included, comes from
+`nixos-26.05` itself. An NSS from the newer pin (built with gcc 16) once broke
+the PGO profile run: it fails to load its soft token in Firefox's sandboxed
+socket process, which then exits during startup.
 
 `devenv.nix` provides the development shell that `mach` and `npm run lint`
 need. Two details in it are load-bearing: jemalloc is filtered off
