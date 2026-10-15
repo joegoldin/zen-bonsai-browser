@@ -34,16 +34,22 @@
       # (and mach's own configure, which the lint app also runs) reach for
       # rust-cbindgen and nss_latest themselves, so they have to be replaced at
       # the pkgs level for configure to see the newer ones.
+      #
+      # nss_latest is built by the *pinned* nixpkgs from the newer pin's
+      # expression, like apple-sdk_26 below, not taken wholesale. It is a
+      # runtime library: nixpkgs-newer's build links libsoftokn3 against that
+      # pin's sqlite, which needs a newer glibc than the one Zen runs on, so the
+      # softoken fails to dlopen, NSS never initialises and every https load
+      # fails with "doesn't know how to communicate with the server".
+      # rust-cbindgen only runs at build time, so the newer pin's is fine.
       pkgsFor =
         system:
         import nixpkgs {
           inherit system;
           overlays = [
-            (_final: _prev: {
-              inherit (nixpkgs-newer.legacyPackages.${system})
-                rust-cbindgen
-                nss_latest
-                ;
+            (final: _prev: {
+              inherit (nixpkgs-newer.legacyPackages.${system}) rust-cbindgen;
+              nss_latest = final.callPackage "${nixpkgs-newer}/pkgs/development/libraries/nss/latest.nix" { };
             })
           ];
         };
