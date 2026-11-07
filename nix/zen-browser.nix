@@ -42,7 +42,7 @@ let
 
   firefox-src = fetchurl {
     url = "mirror://mozilla/firefox/releases/${firefox-version}/source/firefox-${firefox-version}.source.tar.xz";
-    hash = "sha512-FLj/3DJaI0Bh2xTeqb0UR4bcLIRGil3+K7cLuVWPY/c0J88kTq9GEBDuAd/fBPLK5ouunwe0ggYDpLzURi95YA==";
+    hash = "sha512-5zdcDBg2GyL6HS5v1fak/yCyLnCQpkvzLX73ntsKZJmDQ5uOboAQb+UbuWaZvdMJbJIf4ZjRtGAZOmbW2PInpA==";
   };
 
   # Read from surfer.json so the fetched Firefox source always matches the base
@@ -78,7 +78,7 @@ let
   # tree-style-tabs fork and increments for fork-only fixes between upstream
   # releases. It names the store path and the reported application version; the
   # Firefox base is read from surfer.json and stays correct on its own.
-  zen-version = "1.23.2b-bonsai.1";
+  zen-version = "1.24.1b-bonsai.1";
 in
 {
   inherit

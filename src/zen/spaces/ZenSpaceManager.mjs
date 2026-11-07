@@ -10,6 +10,8 @@ import { ZenSpacesSwipe } from "resource:///modules/zen/ZenSpacesSwipe.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ZenKeyboardShortcuts:
+    "resource:///modules/zen/kbs/ZenKeyboardShortcuts.sys.mjs",
   ZenSessionStore: "resource:///modules/zen/ZenSessionManager.sys.mjs",
 });
 
@@ -1440,7 +1442,9 @@ class nsZenWorkspaces {
     // Call parent node as on windows, the text can be double clicked
     let target;
     try {
-      target = event.explicitOriginalTarget?.closest("toolbarbutton");
+      target = (
+        event.target.anchorNode || event.explicitOriginalTarget
+      )?.closest("toolbarbutton");
     } catch (e) {
       console.error("Error getting explicitOriginalTarget in context menu:", e);
     }
@@ -1604,6 +1608,7 @@ class nsZenWorkspaces {
 
   get shouldShowContainers() {
     return (
+      !this.isPrivateWindow &&
       Services.prefs.getBoolPref("privacy.userContext.ui.enabled") &&
       !!ContextualIdentityService.getPublicIdentities().length
     );
@@ -1792,9 +1797,18 @@ class nsZenWorkspaces {
   }
 
   #deleteAllUnpinnedTabsInWorkspace(tabs) {
+    if (
+      !gBrowser.warnAboutClosingTabs(
+        tabs.length,
+        window.Tabbrowser.closingTabsEnum.OTHER
+      )
+    ) {
+      return false;
+    }
     gBrowser.removeTabs(tabs, {
       closeWindowWithLastTab: false,
     });
+    return true;
   }
 
   #deleteWorkspaceOwnedTabs(workspaceID) {
@@ -2358,10 +2372,9 @@ class nsZenWorkspaces {
         const {
           gradient: nextGradient,
           grain: nextGrain,
+          grainTexture: nextGrainTexture,
           toolbarGradient: nextToolbarGradient,
         } = gZenThemePicker.getGradientForWorkspace(nextWorkspace);
-        const existingGrain =
-          gZenThemePicker.getGradientForWorkspace(workspace).grain;
         const percentage = Math.abs(offsetPixels) / 200;
         [lazy.browserBackgroundElement, lazy.toolbarBackgroundElement].forEach(
           element => {
@@ -2381,20 +2394,22 @@ class nsZenWorkspaces {
             "--zen-main-browser-background-toolbar-old",
             nextToolbarGradient
           );
+          // The next space's grain rides along in the old slot, like its
+          // gradient does.
+          [
+            lazy.browserBackgroundElement,
+            lazy.toolbarBackgroundElement,
+          ].forEach(element =>
+            gZenThemePicker.setGrainLayer(
+              element,
+              nextGrain,
+              nextGrainTexture,
+              {
+                old: true,
+              }
+            )
+          );
           this.#setAnimatingBackground(true);
-        }
-        // Fit the offsetPixels into the grain limits. Both ends may be nextGrain and existingGrain,
-        // so we need to use the min and max of both. For example, existing may be 0.2 and next may be 0.5,
-        // meaning we should convert the offset to a percentage between 0.2 and 0.5. BUT if existingGrain
-        // is 0.5 and nextGrain is 0.2, we should still convert the offset to a percentage between 0.2 and 0.5.
-        const minGrain = Math.min(existingGrain, nextGrain);
-        const maxGrain = Math.max(existingGrain, nextGrain);
-        const grainValue =
-          minGrain +
-          (maxGrain - minGrain) *
-            (existingGrain > nextGrain ? 1 - percentage : percentage);
-        if (!this.#inChangingWorkspace) {
-          gZenThemePicker.updateNoise(grainValue);
         }
       }
     } else {
@@ -3378,10 +3393,13 @@ class nsZenWorkspaces {
     if (!closableTabs.length) {
       return;
     }
-    this.#deleteAllUnpinnedTabsInWorkspace(closableTabs);
+    if (!this.#deleteAllUnpinnedTabsInWorkspace(closableTabs)) {
+      return;
+    }
 
     const restoreClosedTabsShortcut =
-      gZenKeyboardShortcutsManager.getShortcutDisplayFromCommand(
+      lazy.ZenKeyboardShortcuts.getShortcutDisplayFromCommand(
+        window,
         "History:RestoreLastClosedTabOrWindowOrSession"
       );
 
@@ -3408,7 +3426,7 @@ class nsZenWorkspaces {
         args: { name: this.getWorkspaceFromId(workspaceId).name },
       },
     ]);
-    if (Services.prompt.confirm(null, title, body)) {
+    if (Services.prompt.confirm(window, title, body)) {
       this.removeWorkspace(workspaceId);
     }
   }

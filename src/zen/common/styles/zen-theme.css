@@ -194,7 +194,7 @@
   --urlbar-box-active-bgcolor: var(--toolbarbutton-background-color-hover) !important;
   --zen-input-border-color: light-dark(rgb(204, 204, 204), rgb(66, 65, 77));
   --urlbar-box-hover-bgcolor: var(--toolbarbutton-background-color-hover) !important;
-  --input-text-background-color: light-dark(rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2)) !important;
+  --input-background-color: light-dark(rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2)) !important;
   --toolbar-field-focus-background-color: light-dark(
     rgba(255, 255, 255, 0.25),
     rgba(0, 0, 0, 0.3)
@@ -211,6 +211,8 @@
 
   --browser-area-z-index-toolbox: 2 !important;
   --attention-dot-color: transparent !important;
+
+  --toolbar-text-color: light-dark(rgba(0, 0, 0, .8), rgba(255, 255, 255, .8)) !important;
 
   --zen-appcontent-border: 1px solid var(--zen-colors-border);
 
@@ -291,8 +293,6 @@
   /** Other theme-related styles */
   @media (-moz-platform: macos) {
     font-family:
-      SF Pro,
-      ui-sans-serif,
       system-ui,
       sans-serif,
       Apple Color Emoji,
@@ -302,7 +302,7 @@
   }
 
   @media (-moz-platform: windows) {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
 }
 

@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ContextualIdentityService:
+    "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 });
 
@@ -36,7 +39,29 @@ const kImportableSchemes = new Set(["http:", "https:", "file:", "ftp:"]);
 const kArcDefaultSpaceId = "thebrowser.company.defaultPersonalSpaceID";
 
 const kMaxTreeDepth = 32;
+// Range of the space intensity slider, keep in sync with theme-picker.inc.
+const kMinSpaceOpacity = AppConstants.platform === "macosx" ? 0.3 : 0.25;
+const kMaxSpaceOpacity = 0.8;
+// Arc grain styles mapped onto the theme picker's.
+const kArcTextures = {
+  grain: "grain",
+  sand: "sand",
+  denim: "denim",
+  tweed: "tweed",
+};
 const kMaxSpaceColors = 3;
+
+const kArcDefaultProfile = "Default";
+const kContainerColors = [
+  "blue",
+  "turquoise",
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "pink",
+  "purple",
+];
 
 /**
  * Arc stores Swift dictionaries as flat arrays alternating key and value, for
@@ -74,6 +99,21 @@ function normalizeUrl(url) {
   } catch {
     return null;
   }
+}
+
+/**
+ * The Chromium profile directory an Arc profile marker refers to. Arc writes
+ * `{ default: {} }` for its main profile and
+ * `{ custom: { _0: { directoryBasename } } }` for the others.
+ *
+ * @param {object} marker
+ * @returns {string}
+ */
+function arcProfileId(marker) {
+  const directory = marker?.custom?._0?.directoryBasename;
+  return typeof directory === "string" && directory
+    ? directory
+    : kArcDefaultProfile;
 }
 
 function arcSpaceTitle(space, index) {
@@ -121,12 +161,12 @@ function arcColor(color) {
  * Reads an Arc space's window theme
  *
  * @param {object} space
- * @returns {{colors: number[][], intensity: number|null, noise: number|null}}
- *   Up to kMaxSpaceColors `[r, g, b]` colors in 0-255 plus Arc's intensity
- *   and noise factors when present.
+ * @returns {{colors: number[][], intensity: number|null, noise: number|null, overlay: string|null}}
+ *   Up to kMaxSpaceColors `[r, g, b]` colors in 0-255 plus Arc's intensity,
+ *   noise factor and grain style when present.
  */
 function arcSpaceTheme(space) {
-  const result = { colors: [], intensity: null, noise: null };
+  const result = { colors: [], intensity: null, noise: null, overlay: null };
   const style =
     space.customInfo?.windowTheme?.background?.single?._0?.style?.color?._0;
   if (!style || typeof style !== "object") {
@@ -172,21 +212,24 @@ function arcSpaceTheme(space) {
   if (typeof modifiers?.noiseFactor === "number") {
     result.noise = modifiers.noiseFactor;
   }
+  if (modifiers?.overlay in kArcTextures) {
+    result.overlay = modifiers.overlay;
+  }
   return result;
 }
 
-function colorLightness([r, g, b]) {
-  return Math.round(((Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255) * 100);
+function colorBrightness([r, g, b]) {
+  return Math.round((Math.max(r, g, b) / 255) * 100);
 }
 
 /**
- * @param {{colors: number[][], intensity: number|null, noise: number|null}} arcTheme
+ * @param {{colors: number[][], intensity: number|null, noise: number|null, overlay: string|null}} arcTheme
  *   The colors (first one primary) and modifiers read from Arc.
  * @returns {object} A Zen space theme, as nsZenThemePicker.getTheme builds it
  */
-function spaceThemeFromArc({ colors, intensity, noise }) {
+function spaceThemeFromArc({ colors, intensity, noise, overlay }) {
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const lightness = colorLightness(colors[0]);
+  const lightness = colorBrightness(colors[0]);
   return {
     type: "gradient",
     gradientColors: colors.map((c, index) => ({
@@ -197,11 +240,17 @@ function spaceThemeFromArc({ colors, intensity, noise }) {
       lightness,
       type: "explicit-lightness",
     })),
-    opacity: intensity === null ? 0.5 : clamp(intensity, 0.3, 0.8),
+    // Arc's intensity spans Zen's whole slider, both start at a 20% tint.
+    opacity:
+      intensity === null
+        ? 0.5
+        : kMinSpaceOpacity +
+          clamp(intensity, 0, 1) * (kMaxSpaceOpacity - kMinSpaceOpacity),
     texture:
       noise === null
         ? 0
         : Math.min(15 / 16, Math.round(clamp(noise, 0, 1) * 16) / 16),
+    textureType: kArcTextures[overlay] ?? kArcTextures.grain,
   };
 }
 
@@ -234,7 +283,10 @@ class ZenMigrationUtilsClass {
   }
 
   /**
-   * Converts Arc's StorableSidebar.json into an import plan.
+   * Converts Arc's StorableSidebar.json into an import plan. `containers` is
+   * a key/value list: the `global` entry is the main sidebar, and each
+   * `littleBrowser` entry is the sidebar of a Little Arc window, which only
+   * holds an untitled space with unpinned tabs and is skipped.
    *
    * @param {object} sidebar The parsed JSON file.
    * @returns {{favorites: object[], spaces: object[]}}
@@ -247,8 +299,9 @@ class ZenMigrationUtilsClass {
     if (!Array.isArray(containers)) {
       return plan;
     }
-    for (const container of containers) {
+    for (const [kind, container] of pairs(containers)) {
       if (
+        !kind?.global ||
         !container ||
         typeof container !== "object" ||
         !Array.isArray(container.items)
@@ -304,9 +357,14 @@ class ZenMigrationUtilsClass {
         }
         return result;
       };
-      for (const [, containerId] of pairs(container.topAppsContainerIDs)) {
+      for (const [marker, containerId] of pairs(
+        container.topAppsContainerIDs
+      )) {
         if (typeof containerId === "string") {
-          plan.favorites.push(...this.#flattenTabs(convert(containerId, 0)));
+          const profile = arcProfileId(marker);
+          for (const favorite of this.#flattenTabs(convert(containerId, 0))) {
+            plan.favorites.push({ ...favorite, profile });
+          }
         }
       }
       for (const [, space] of pairs(container.spaces)) {
@@ -314,10 +372,12 @@ class ZenMigrationUtilsClass {
           continue;
         }
         const pinnedId = pairs(space.containerIDs).find(
+          // eslint-disable-next-line no-shadow
           ([kind]) => kind === "pinned"
         )?.[1];
         plan.spaces.push({
           id: space.id,
+          profile: arcProfileId(space.profile),
           title: arcSpaceTitle(space, plan.spaces.length),
           icon: arcSpaceIcon(space),
           theme: arcSpaceTheme(space),
@@ -328,7 +388,66 @@ class ZenMigrationUtilsClass {
     return plan;
   }
 
-  async applyArcSidebar(plan, win = this.browserWindow) {
+  /**
+   * The part of an import plan that belongs to one Arc profile.
+   *
+   * @param {{favorites: object[], spaces: object[]}} plan
+   * @param {string} [profileId] A Chromium profile directory name. Without
+   *   one the whole plan is returned.
+   */
+  filterArcPlan(plan, profileId) {
+    if (!profileId) {
+      return plan;
+    }
+    const ofProfile = entry =>
+      (entry.profile ?? kArcDefaultProfile) === profileId;
+    return {
+      favorites: plan.favorites.filter(ofProfile),
+      spaces: plan.spaces.filter(ofProfile),
+    };
+  }
+
+  /**
+   * The container that stands in for an Arc profile.
+   *
+   * @param {{id: string, name: string}|null} profile
+   * @returns {number} The userContextId, 0 for no container.
+   */
+  containerIdForArcProfile(profile) {
+    if (!profile || profile.id === kArcDefaultProfile) {
+      return 0;
+    }
+    const name = (profile.name || profile.id).trim() || profile.id;
+    const identities = lazy.ContextualIdentityService.getPublicIdentities();
+    const existing = identities.find(
+      identity =>
+        lazy.ContextualIdentityService.getUserContextLabel(
+          identity.userContextId
+        ) === name
+    );
+    if (existing) {
+      return existing.userContextId;
+    }
+    const color = kContainerColors[identities.length % kContainerColors.length];
+    return lazy.ContextualIdentityService.create(name, "fingerprint", color)
+      .userContextId;
+  }
+
+  /**
+   * Creates the spaces, pinned tabs, folders and essentials of a plan.
+   *
+   * @param {{favorites: object[], spaces: object[]}} plan
+   * @param {Window} [win]
+   * @param {object} [options]
+   * @param {number} [options.containerTabId] The container the new spaces and
+   *   their tabs belong to, 0 for none.
+   * @returns {Promise<number>} How many spaces were imported.
+   */
+  async applyArcSidebar(
+    plan,
+    win = this.browserWindow,
+    { containerTabId = 0 } = {}
+  ) {
     if (!win) {
       throw new Error("ZenMigrationUtils: no window to import spaces into");
     }
@@ -337,7 +456,7 @@ class ZenMigrationUtilsClass {
 
     const leftovers = [];
     for (const favorite of plan.favorites) {
-      const tab = this.#createLazyTab(win, favorite);
+      const tab = this.#createLazyTab(win, favorite, containerTabId);
       if (
         !gZenPinnedTabManager.canEssentialBeAdded(tab) ||
         !gZenPinnedTabManager.addToEssentials(tab)
@@ -348,13 +467,18 @@ class ZenMigrationUtilsClass {
 
     let count = 0;
     for (const space of plan.spaces) {
-      const uuid = await this.#ensureSpace(win, space, count === 0);
+      const uuid = await this.#ensureSpace(
+        win,
+        space,
+        count === 0 && !containerTabId,
+        containerTabId
+      );
       if (count === 0) {
         for (const tab of leftovers.splice(0)) {
           this.#pinTabInto(win, tab, uuid, null);
         }
       }
-      this.#applyItems(win, space.items, uuid, null, 0, null);
+      this.#applyItems(win, space.items, uuid, null, 0, { containerTabId });
       count++;
     }
     for (const tab of leftovers.splice(0)) {
@@ -458,7 +582,7 @@ class ZenMigrationUtilsClass {
     await win.gZenWorkspaces.promiseInitialized;
     const uuid = workspaceId ?? win.gZenWorkspaces.activeWorkspace;
     const budget = maxTabs > 0 ? { remaining: maxTabs } : null;
-    this.#applyItems(win, items, uuid, null, 0, budget);
+    this.#applyItems(win, items, uuid, null, 0, { budget });
   }
 
   #flattenTabs(items) {
@@ -470,7 +594,7 @@ class ZenMigrationUtilsClass {
   // Finds or creates the Zen space an Arc space maps to and resolves to its
   // uuid. A fresh profile's untouched active space is reused for the first
   // import instead of being left behind empty.
-  async #ensureSpace(win, space, canReuseActive) {
+  async #ensureSpace(win, space, canReuseActive, containerTabId = 0) {
     const { gZenWorkspaces, gBrowser } = win;
     if (canReuseActive) {
       const active = gZenWorkspaces.getActiveWorkspaceFromCache();
@@ -501,7 +625,8 @@ class ZenMigrationUtilsClass {
     const data = await gZenWorkspaces.createAndSaveWorkspace(
       space.title,
       space.icon,
-      /* dontChange */ true
+      /* dontChange */ true,
+      containerTabId
     );
     if (!data) {
       throw new Error("ZenMigrationUtils: spaces are disabled in this window");
@@ -518,9 +643,11 @@ class ZenMigrationUtilsClass {
   }
 
   // Walks a plan, creating pinned tabs and folders in order. Folders deeper
-  // than Zen allows are flattened into their parent. `budget` is an optional
-  // `{ remaining }` counter decremented per pinned tab.
-  #applyItems(win, items, workspaceId, parentFolder, depth, budget) {
+  // than Zen allows are flattened into their parent. `context.budget` is an
+  // optional `{ remaining }` counter decremented per pinned tab and
+  // `context.containerTabId` the container the tabs open in.
+  #applyItems(win, items, workspaceId, parentFolder, depth, context) {
+    const { budget, containerTabId = 0 } = context;
     for (const item of items) {
       if (budget && budget.remaining <= 0) {
         return;
@@ -529,7 +656,7 @@ class ZenMigrationUtilsClass {
         if (budget) {
           budget.remaining--;
         }
-        const tab = this.#createLazyTab(win, item);
+        const tab = this.#createLazyTab(win, item, containerTabId);
         this.#pinTabInto(win, tab, workspaceId, parentFolder);
       } else if (item.type === "folder") {
         if (depth >= lazy.gMaxSubfolders) {
@@ -539,7 +666,7 @@ class ZenMigrationUtilsClass {
             workspaceId,
             parentFolder,
             depth,
-            budget
+            context
           );
           continue;
         }
@@ -555,7 +682,7 @@ class ZenMigrationUtilsClass {
           workspaceId,
           folder,
           depth + 1,
-          budget
+          context
         );
         folder.collapsed = true;
       }
@@ -564,8 +691,9 @@ class ZenMigrationUtilsClass {
 
   // Opens an unloaded tab that already knows its pinned url and title, so it
   // shows up right away without loading anything.
-  #createLazyTab(win, item) {
+  #createLazyTab(win, item, containerTabId = 0) {
     const tab = win.gBrowser.addTrustedTab(item.url, {
+      userContextId: containerTabId || undefined,
       createLazyBrowser: true,
       inBackground: true,
       skipAnimation: true,

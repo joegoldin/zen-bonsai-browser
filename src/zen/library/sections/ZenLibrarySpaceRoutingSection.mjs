@@ -51,7 +51,6 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
     this.draft = null;
   }
 
-  #overflowObserver = null;
   #draftTimer = null;
   #picker = null;
   #pickerOnPick = null;
@@ -67,32 +66,6 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
     this.#picker?.remove();
     this.#picker = null;
     this.#cancelDraftTimer();
-    this.#overflowObserver?.disconnect();
-    this.#overflowObserver = null;
-  }
-
-  firstUpdated() {
-    super.firstUpdated();
-    const results = this.querySelector(".zen-library-search-results");
-    this.#overflowObserver = new ResizeObserver(() => this.#checkOverflow());
-    this.#overflowObserver.observe(results);
-    this.#overflowObserver.observe(this);
-  }
-
-  updated(changedProperties) {
-    super.updated(changedProperties);
-    this.#checkOverflow();
-  }
-
-  #checkOverflow() {
-    const results = this.querySelector(".zen-library-search-results");
-    if (!results) {
-      return;
-    }
-    this.toggleAttribute(
-      "list-overflowing",
-      results.scrollHeight > results.clientHeight,
-    );
   }
 
   get searchPlaceholderL10nId() {
@@ -211,7 +184,7 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
     recent.dataset.value = MOST_RECENT_SPACE;
     recent.setAttribute(
       "data-l10n-id",
-      "library-space-routing-most-recent-space",
+      "library-space-routing-most-recent-space"
     );
     recent.setAttribute("type", "radio");
     recent.setAttribute("name", "zen-library-routing-space");
@@ -418,7 +391,7 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
                     this.draft = { ...draft, matchType: type.id };
                   }}
                 ></button>
-              `,
+              `
             )}
           </div>
           <input
@@ -516,7 +489,7 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
         route.reference.toLowerCase().includes(query) ||
         (route.openInSpace || this.#spaceName(route.openIn))
           .toLowerCase()
-          .includes(query),
+          .includes(query)
     );
   }
 
@@ -542,22 +515,22 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
         () => html`
           <h3 data-l10n-id="library-space-routing-managed-section"></h3>
           ${repeat(
-          managed,
-          route => route.id,
-          route => this.#renderRoute(route),
-        )}
+            managed,
+            route => route.id,
+            route => this.#renderRoute(route)
+          )}
           ${when(
-          user.length,
-          () => html`
-            <h3 data-l10n-id="library-space-routing-user-section"></h3>
-          `,
-        )}
-        `,
+            user.length,
+            () => html`
+              <h3 data-l10n-id="library-space-routing-user-section"></h3>
+            `
+          )}
+        `
       )}
       ${repeat(
         user,
         route => route.id,
-        route => this.#renderRoute(route),
+        route => this.#renderRoute(route)
       )}
     `;
   }
@@ -607,9 +580,9 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
                 class="toolbarbutton-1"
                 data-l10n-id="library-space-routing-remove-button"
                 @click=${event => {
-              event.stopPropagation();
-              this.#removeRoute(route);
-            }}
+                  event.stopPropagation();
+                  this.#removeRoute(route);
+                }}
               >
                 <img
                   class="toolbarbutton-icon"
@@ -618,7 +591,7 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
                 />
               </toolbarbutton>
             </div>
-          `,
+          `
         )}
       </div>
     `;
@@ -630,7 +603,7 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
         <h3 data-l10n-id="library-space-routing-external-links"></h3>
         ${this.#renderSpacePicker(
           lazy.gZenSpaceRoutingManager.getDefaultExternalRoute(),
-          value => this.#setDefaultExternal(value),
+          value => this.#setDefaultExternal(value)
         )}
       </div>
     `;
@@ -639,5 +612,5 @@ export class ZenLibrarySpaceRoutingSection extends ZenLibrarySearchSection {
 
 customElements.define(
   "zen-library-space-routing-section",
-  ZenLibrarySpaceRoutingSection,
+  ZenLibrarySpaceRoutingSection
 );

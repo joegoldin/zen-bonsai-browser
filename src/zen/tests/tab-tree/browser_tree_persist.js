@@ -128,6 +128,10 @@ add_task(async function test_undo_close_restores_nesting() {
   );
   gBrowser.removeTabs([parent, child], { animate: false });
   await Promise.all(closings);
+  Assert.ok(
+    !parent._zenTreeClosing && !child._zenTreeClosing,
+    "batch-close markers are cleared after removal"
+  );
 
   const restored = [];
   for (let i = 0; i < 2; i++) {

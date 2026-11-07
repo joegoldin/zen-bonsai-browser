@@ -19,7 +19,7 @@
 #zen-library-button {
   position: relative;
 
-  --zen-library-sprite-size: 18px;
+  --zen-library-sprite-size: 20px;
 
   & .zen-library-sprite {
     position: absolute;
@@ -27,7 +27,6 @@
     height: var(--zen-library-sprite-size);
     overflow: clip;
     pointer-events: none;
-    scale: 1.08;
   }
 
   & .zen-library-sprite::before {
