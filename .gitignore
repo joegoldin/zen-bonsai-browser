@@ -38,3 +38,4 @@ bloat-dump.log
 
 # Local scratch: build/test logs, diagnostic dumps, screenshots, inspect scripts
 artifacts/
+.pi/

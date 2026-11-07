@@ -5,6 +5,7 @@
 import { nsZenMenuBar } from "chrome://browser/content/zen-components/ZenMenubar.mjs";
 import { nsZenToastManager } from "resource:///modules/zen/ZenToasts.mjs";
 import { nsZenUrlbarController } from "resource:///modules/zen/urlbar/ZenUrlbarController.mjs";
+import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 
 // Minimum height the floating URL bar is vertically centered against.
 const FLOATING_URLBAR_MIN_HEIGHT = 333;
@@ -65,7 +66,6 @@ class nsZenUIManager {
     gZenVerticalTabsManager.init();
     this.#urlbar.init();
 
-    this.#markAcrylicSupport();
     this.#initCreateNewPopup();
     this.#debloatContextMenus();
     this.#addCompactModeButtonIfNeeded();
@@ -395,6 +395,44 @@ class nsZenUIManager {
     return this.#urlbar.handleNewTab(...args);
   }
 
+  /**
+   * The clipboard text a new tab would be opened with, shaped the same way
+   * BrowserCommands.openTab shapes it, or an empty string when there is
+   * nothing to paste.
+   *
+   * @returns {string}
+   */
+  clipboardForNewTab() {
+    const clipboard = readFromClipboard();
+    if (!clipboard) {
+      return "";
+    }
+    return UrlbarShared.stripUnsafeProtocolOnPaste(clipboard).trim();
+  }
+
+  /**
+   * Whether a new tab request is the accel click on a new tab button that asks
+   * for the clipboard to be pasted and searched, which the button advertises
+   * while the accel key is held over it.
+   *
+   * @param {Event} [event] - The event that asked for the new tab.
+   * @returns {boolean}
+   */
+  newTabButtonWantsClipboard(event) {
+    // A XUL command event wraps the one that caused it, and only the innermost
+    // of them is targeted at the button itself.
+    let source = event;
+    while (source?.sourceEvent) {
+      source = source.sourceEvent;
+    }
+    if (source?.target?.id !== "tabs-newtab-button") {
+      return false;
+    }
+    // Command events carry the modifiers but not getModifierState, so resolve
+    // the accel key the way BrowserUtils.whereToOpenLink does.
+    return AppConstants.platform === "macosx" ? source.metaKey : source.ctrlKey;
+  }
+
   matchesCloseToken(closeToken, event) {
     return this.#urlbar.matchesCloseToken(closeToken, event);
   }
@@ -438,25 +476,6 @@ class nsZenUIManager {
   }
 
   // Section: startup DOM tweaks
-
-  /**
-   * Software WebRender can't filter the web content behind the chrome, so the acrylic
-   * elements have nothing to blur there and must stay opaque. Safe mode blocks
-   * hardware acceleration, so it ends up on the same path.
-   */
-  #markAcrylicSupport() {
-    let supported = !Services.appinfo.inSafeMode;
-
-    try {
-      supported &&= !window.windowUtils.layerManagerType.includes("Software");
-    } catch (e) {
-      // No widget associated with this window yet, assume hardware rendering.
-    }
-
-    if (!supported) {
-      document.documentElement.setAttribute("zen-no-acrylic", "true");
-    }
-  }
 
   #addCompactModeButtonIfNeeded() {
     const kPref = "zen.ui.migration.compact-mode-button-added";

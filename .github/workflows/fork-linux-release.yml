@@ -107,7 +107,7 @@ jobs:
       - name: Pin Rust toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-            --default-toolchain $(cat .rust-toolchain)
+            --default-toolchain "$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')"
           . "$HOME/.cargo/env"
           rustup target add x86_64-unknown-linux-gnu
 
