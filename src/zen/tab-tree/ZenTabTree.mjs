@@ -744,7 +744,7 @@ class nsZenTabTree extends nsZenDOMOperatedFeature {
   // Mid-removal, or tagged for a multiselection close batch (before any
   // TabClose fires) — lets us tell co-closing members from survivors.
   #isClosing(node) {
-    return !!(node?.closing || node?._closedInMultiselection);
+    return !!(node?.closing || node?._zenTreeClosing);
   }
 
   #nearestSurvivingParent(node) {

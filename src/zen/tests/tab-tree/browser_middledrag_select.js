@@ -27,6 +27,15 @@ add_task(async function test_middle_drag_selects_range() {
 
   // Cancel the gesture without closing.
   EventUtils.synthesizeKey("KEY_Escape", {}, window);
+  EventUtils.synthesizeMouseAtCenter(
+    t3,
+    { type: "mouseup", button: 1 },
+    window
+  );
+  Assert.ok(
+    [t1, t2, t3].every(tab => tab.isConnected && !tab.closing),
+    "releasing middle after Escape leaves the selected tabs open"
+  );
   gBrowser.clearMultiSelectedTabs();
   await cleanupTabs(t1, t2, t3);
 });
