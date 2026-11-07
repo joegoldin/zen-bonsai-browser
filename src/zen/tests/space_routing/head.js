@@ -4,15 +4,15 @@
 "use strict";
 
 const { gZenSpaceRoutingManager } = ChromeUtils.importESModule(
-  "resource:///modules/zen/spacerouting/ZenSpaceRoutingManager.sys.mjs",
+  "resource:///modules/zen/spacerouting/ZenSpaceRoutingManager.sys.mjs"
 );
 
 const { gZenManagedSpaces } = ChromeUtils.importESModule(
-  "resource:///modules/zen/spacerouting/ZenManagedSpaces.sys.mjs",
+  "resource:///modules/zen/spacerouting/ZenManagedSpaces.sys.mjs"
 );
 
 const { ContextualIdentityService } = ChromeUtils.importESModule(
-  "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
+  "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs"
 );
 
 async function withManagedSpaces(json, fn) {

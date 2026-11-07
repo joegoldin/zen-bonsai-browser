@@ -4,7 +4,7 @@
 "use strict";
 
 const { gZenSpaceRoutingManager } = ChromeUtils.importESModule(
-  "resource:///modules/zen/spacerouting/ZenSpaceRoutingManager.sys.mjs",
+  "resource:///modules/zen/spacerouting/ZenSpaceRoutingManager.sys.mjs"
 );
 
 const Library = customElements.get("zen-library");
@@ -23,7 +23,7 @@ async function openRoutingSection() {
   await TestUtils.waitForCondition(
     () =>
       Library.libraryProgress === 1 && !library.hasAttribute("transitioning"),
-    "the library settles open",
+    "the library settles open"
   );
   const section = document.querySelector("zen-library-space-routing-section");
   await section.updateComplete;
@@ -37,7 +37,7 @@ async function closeLibrary() {
   Library.toggle();
   await TestUtils.waitForCondition(
     () => !Library.isLibraryOpen && Library.libraryProgress === 0,
-    "the library settles closed",
+    "the library settles closed"
   );
 }
 
@@ -53,7 +53,7 @@ async function openPicker(picker) {
   const shown = BrowserTestUtils.waitForEvent(
     document.getElementById("mainPopupSet"),
     "popupshown",
-    true,
+    true
   );
   picker.click();
   const menu = (await shown).target;
@@ -72,14 +72,14 @@ add_task(async function test_new_route_form_adds_a_route() {
 
   Assert.ok(
     section.querySelector(".zen-library-empty"),
-    "a profile with no routes says so",
+    "a profile with no routes says so"
   );
 
   section.querySelector(".zen-library-filter-button").click();
   await section.updateComplete;
   Assert.ok(
     section.querySelector(".zen-library-routing-form"),
-    "the new button opens the form",
+    "the new button opens the form"
   );
 
   const save = section.querySelector(".zen-library-routing-save");
@@ -96,12 +96,12 @@ add_task(async function test_new_route_form_adds_a_route() {
   Assert.equal(routes[0].matchType, "contains", "and the match it was given");
   Assert.ok(
     !section.querySelector(".zen-library-search-top[open]"),
-    "the form closes once the route is in",
+    "the form closes once the route is in"
   );
   Assert.equal(
     section.querySelectorAll(".zen-library-row").length,
     1,
-    "and the route is in the list",
+    "and the route is in the list"
   );
 
   clearRoutes();
@@ -115,7 +115,7 @@ add_task(async function test_match_type_changes_what_is_saved() {
   await section.updateComplete;
 
   const chips = section.querySelectorAll(
-    ".zen-library-routing-match-types .zen-library-filter-chip",
+    ".zen-library-routing-match-types .zen-library-filter-chip"
   );
   Assert.equal(chips.length, 3, "the three ways to match a link are offered");
   chips[2].click();
@@ -125,7 +125,7 @@ add_task(async function test_match_type_changes_what_is_saved() {
   Assert.equal(
     input.placeholder,
     "zen-browser\\.app",
-    "the placeholder reads as a pattern once the match does",
+    "the placeholder reads as a pattern once the match does"
   );
   section.querySelector(".zen-library-routing-save").click();
   await section.updateComplete;
@@ -145,7 +145,7 @@ add_task(async function test_a_pattern_that_cannot_be_read_is_not_saved() {
 
   section
     .querySelectorAll(
-      ".zen-library-routing-match-types .zen-library-filter-chip",
+      ".zen-library-routing-match-types .zen-library-filter-chip"
     )[2]
     .click();
   await section.updateComplete;
@@ -154,12 +154,12 @@ add_task(async function test_a_pattern_that_cannot_be_read_is_not_saved() {
   Assert.ok(input.hasAttribute("invalid"), "the field says it is no pattern");
   Assert.ok(
     section.querySelector(".zen-library-routing-save").disabled,
-    "and there is nothing to add",
+    "and there is nothing to add"
   );
   Assert.equal(
     gZenSpaceRoutingManager.getAllRoutes().length,
     0,
-    "nothing was kept",
+    "nothing was kept"
   );
 
   clearRoutes();
@@ -179,7 +179,7 @@ add_task(async function test_a_route_can_be_changed_and_taken_away() {
   Assert.equal(
     section.querySelector(".zen-library-routing-reference").value,
     "zen-browser.app",
-    "a row opens the form on its own route",
+    "a row opens the form on its own route"
   );
 
   await fillReference(section, "docs.zen-browser.app");
@@ -191,7 +191,7 @@ add_task(async function test_a_route_can_be_changed_and_taken_away() {
   Assert.equal(
     routes[0].reference,
     "docs.zen-browser.app",
-    "with its new link",
+    "with its new link"
   );
 
   section
@@ -201,7 +201,7 @@ add_task(async function test_a_route_can_be_changed_and_taken_away() {
   Assert.equal(
     gZenSpaceRoutingManager.getAllRoutes().length,
     0,
-    "the route was taken away",
+    "the route was taken away"
   );
 
   clearRoutes();
@@ -215,14 +215,14 @@ add_task(async function test_escape_closes_the_form_and_leaves_the_library() {
   await section.updateComplete;
   Assert.ok(
     section.querySelector(".zen-library-routing-form"),
-    "the form is up",
+    "the form is up"
   );
 
   EventUtils.synthesizeKey("KEY_Escape");
   await section.updateComplete;
   Assert.ok(
     !section.querySelector(".zen-library-search-top[open]"),
-    "escape puts the form away",
+    "escape puts the form away"
   );
   Assert.ok(Library.isLibraryOpen, "and leaves the library where it was");
 
@@ -239,19 +239,19 @@ add_task(async function test_footer_sets_where_other_apps_land() {
   const picker = footer.querySelector(".zen-library-routing-select");
   const menu = await openPicker(picker);
   const space = [...menu.children].find(
-    item => item.dataset.value !== "most-recent-space",
+    item => item.dataset.value !== "most-recent-space"
   );
   Assert.ok(space, "the spaces of this window are offered");
   const recent = menu.firstElementChild;
   Assert.ok(
     !recent.hasAttribute("image"),
-    "landing wherever the user was last is shown without an icon",
+    "landing wherever the user was last is shown without an icon"
   );
   await document.l10n.translateFragment(menu);
   Assert.equal(
     recent.getAttribute("label"),
     "Most recent space",
-    "and it is named",
+    "and it is named"
   );
 
   const value = space.dataset.value;
@@ -260,7 +260,7 @@ add_task(async function test_footer_sets_where_other_apps_land() {
   Assert.equal(
     gZenSpaceRoutingManager.getDefaultExternalRoute(),
     value,
-    "picking a space is where links from other apps go now",
+    "picking a space is where links from other apps go now"
   );
 
   gZenSpaceRoutingManager.setDefaultExternalRoute("most-recent-space");
@@ -279,18 +279,18 @@ add_task(async function test_closing_the_library_puts_the_form_away() {
   await section.updateComplete;
   Assert.ok(
     !section.querySelector(".zen-library-routing-form"),
-    "the form is gone with the library it was open in",
+    "the form is gone with the library it was open in"
   );
 
   const reopened = await openRoutingSection();
   Assert.ok(
     !reopened.querySelector(".zen-library-routing-form"),
-    "and the library does not open back onto it",
+    "and the library does not open back onto it"
   );
   Assert.equal(
     gZenSpaceRoutingManager.getAllRoutes().length,
     0,
-    "what was being written was not kept",
+    "what was being written was not kept"
   );
 
   await closeLibrary();
@@ -318,42 +318,42 @@ add_task(async function test_managed_routes_render_readonly_in_library() {
     Assert.equal(rows.length, 1, "Exactly one managed route is rendered");
     Assert.ok(
       section.querySelector(
-        '[data-l10n-id="library-space-routing-managed-section"]',
+        '[data-l10n-id="library-space-routing-managed-section"]'
       ),
-      "Managed routes have a configuration label",
+      "Managed routes have a configuration label"
     );
     Assert.ok(
       rows[0].textContent.includes("configured.example"),
-      "The configured reference is shown",
+      "The configured reference is shown"
     );
     Assert.ok(
       rows[0].textContent.includes("Work"),
-      "The configured Space name is shown",
+      "The configured Space name is shown"
     );
     Assert.equal(
       gZenSpaceRoutingManager.getAllRoutes().length,
       0,
-      "Managed routes remain separate from editable user routes",
+      "Managed routes remain separate from editable user routes"
     );
     Assert.equal(
       section.querySelectorAll(".zen-library-routing-row:not([managed])")
         .length,
       0,
-      "No editable row is rendered for a managed route",
+      "No editable row is rendered for a managed route"
     );
     Assert.ok(
       !section.querySelector(".zen-library-empty"),
-      "Managed routes hide the empty state",
+      "Managed routes hide the empty state"
     );
     Assert.ok(
       !rows[0].querySelector("toolbarbutton"),
-      "Managed routes cannot be removed",
+      "Managed routes cannot be removed"
     );
     rows[0].click();
     await section.updateComplete;
     Assert.ok(
       !section.querySelector(".zen-library-routing-form"),
-      "Managed routes cannot be edited",
+      "Managed routes cannot be edited"
     );
     section.searchQuery = "Work";
     section.onSearchChanged();
@@ -361,7 +361,7 @@ add_task(async function test_managed_routes_render_readonly_in_library() {
     Assert.equal(
       section.querySelectorAll(".zen-library-routing-row[managed]").length,
       1,
-      "Managed routes are searchable by their configured Space name",
+      "Managed routes are searchable by their configured Space name"
     );
   } finally {
     await closeLibrary();
