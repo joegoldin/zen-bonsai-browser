@@ -53,7 +53,7 @@ class BuildIdentityTests(unittest.TestCase):
         self.assertEqual(
             self.validate(
                 self.output.replace("Mozilla Zen", "Mozilla Zen Bonsai").strip()
-                + ", Copyright Mozilla\n"
+                + " , Copyright Mozilla\n"
             )["build_id"],
             "20261109175329",
         )

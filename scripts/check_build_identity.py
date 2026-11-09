@@ -17,7 +17,7 @@ class BuildIdentityError(ValueError):
 
 
 def validate_identity(output, application, platform):
-    match = re.search(r"(?:^|\s)(\S+) (\d{14}) (\d{14})(?:,.*)?$", output.strip())
+    match = re.search(r"(?:^|\s)(\S+) (\d{14}) (\d{14})(?:\s*,.*)?$", output.strip())
     if not match:
         raise BuildIdentityError(
             "Executable did not return version and two build IDs with --full-version"
