@@ -60,8 +60,10 @@ export function patchSurferPackaging(source) {
   const appname = "__1.config.binaryName";
   if (
     normalized.length === 3 &&
-    normalized[0] === newArchive &&
-    normalized[1] === directory &&
+    (normalized[0] === newArchive ||
+      normalized[0] === "bonsaiMarPath(marPath)") &&
+    (normalized[1] === directory ||
+      normalized[1] === "bonsaiMarPath(binary)") &&
     normalized[2] === appname
   ) {
     return source;
@@ -87,6 +89,75 @@ export function patchSurferPackaging(source) {
   );
 }
 
+export function patchSurferWindowsPaths(source) {
+  const parsed = ts.createSourceFile(
+    "package.js",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const declaration = parsed.statements.find(
+    (node) =>
+      ts.isFunctionDeclaration(node) && node.name?.text === "createMarFile",
+  );
+  if (!declaration?.body)
+    throw new Error(
+      "Surfer MAR packaging changed; review the Windows path patch",
+    );
+  const replacement = String.raw`(path) => process.platform === 'win32'
+    ? path.replace(/[\\]+/g, '/').replace(/^([a-zA-Z]):\//, (_, drive) => '/' + drive.toLowerCase() + '/').replace(/^\.\//, '')
+    : path`;
+  const normalize = (value) => value.replace(/\s/g, "").replace(/"/g, "'");
+  const calls = [];
+  const patchedCalls = [];
+  let helper;
+  function visit(node) {
+    if (ts.isCallExpression(node)) {
+      if (
+        normalize(node.expression.getText(parsed)) ===
+        "(0,utils_1.windowsPathToUnix)"
+      )
+        calls.push(node.expression);
+      if (node.expression.getText(parsed) === "bonsaiMarPath")
+        patchedCalls.push(node);
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name.getText(parsed) === "bonsaiMarPath"
+    )
+      helper = node;
+    ts.forEachChild(node, visit);
+  }
+  visit(declaration);
+  if (
+    helper &&
+    calls.length === 0 &&
+    patchedCalls.length === 4 &&
+    normalize(helper.initializer?.getText(parsed) ?? "") ===
+      normalize(replacement)
+  )
+    return source;
+  if (helper || calls.length !== 4 || patchedCalls.length)
+    throw new Error(
+      "Unrecognized Surfer MAR path calls; refusing to patch blindly",
+    );
+  // Scope conversion to shell-bound MAR paths; native callers need their own conventions.
+  let patched = source;
+  for (const call of calls.reverse())
+    patched =
+      patched.slice(0, call.getStart(parsed)) +
+      "bonsaiMarPath" +
+      patched.slice(call.end);
+  const insertion = declaration.body.getStart(parsed) + 1;
+  return (
+    patched.slice(0, insertion) +
+    "\n  const bonsaiMarPath = " +
+    replacement +
+    ";\n" +
+    patched.slice(insertion)
+  );
+}
+
 if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
@@ -99,5 +170,11 @@ if (
   if (patched !== source) {
     writeFileSync(target, patched);
     console.log("Patched Surfer for the Firefox 160 full-MAR interface");
+  }
+  const packaged = readFileSync(target, "utf8");
+  const patchedPaths = patchSurferWindowsPaths(packaged);
+  if (patchedPaths !== packaged) {
+    writeFileSync(target, patchedPaths);
+    console.log("Patched Surfer to preserve Windows drives in MAR shell paths");
   }
 }
