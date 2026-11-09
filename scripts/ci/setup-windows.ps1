@@ -8,13 +8,29 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONME
     throw 'This bootstrap is only for ephemeral GitHub-hosted Windows runners.'
 }
 
-# The source and object directory need substantially more than the guaranteed
-# minimum free space on a hosted runner. Android is unused by this Windows job.
-if ((Get-PSDrive C).Free -lt 45GB -and (Test-Path -LiteralPath 'C:\Android')) {
-    Remove-Item -LiteralPath 'C:\Android' -Recurse -Force
+# The source and object directory need more than the hosted image guarantees.
+# Reclaim only unused Android, Java and Haskell tools on this disposable runner;
+# keep MSVC, the Windows SDK, Rust, Node, Python and all security protections.
+Get-PSDrive -PSProvider FileSystem | Select-Object Name, Used, Free | Format-Table
+$unused = @(
+    'C:\Android', 'C:\ghcup', 'C:\Program Files\Java',
+    'C:\Program Files\Eclipse Adoptium'
+)
+$unused += @(Get-ChildItem -LiteralPath 'C:\hostedtoolcache\windows' -Filter 'Java*' -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+$unused += @(Get-ChildItem -LiteralPath 'C:\Program Files\Microsoft' -Filter 'jdk*' -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+foreach ($path in $unused) {
+    if ((Get-PSDrive C).Free -ge 45GB) {
+        break
+    }
+    if (Test-Path -LiteralPath $path) {
+        Write-Output "Reclaiming unused tool directory: $path"
+        Remove-Item -LiteralPath $path -Recurse -Force
+    }
 }
+$freeGiB = [math]::Round((Get-PSDrive C).Free / 1GB, 2)
+Write-Output "Free space on C: after cleanup: $freeGiB GiB"
 if ((Get-PSDrive C).Free -lt 45GB) {
-    throw 'The Windows build needs at least 45 GiB free on C:.'
+    throw "The Windows build needs at least 45 GiB free on C:; available: $freeGiB GiB."
 }
 
 # A short source path avoids MAX_PATH failures in vendored dependency names.
