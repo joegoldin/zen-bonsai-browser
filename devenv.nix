@@ -9,6 +9,14 @@ let
   fontconfig =
     pkgs.callPackage "${inputs.nixpkgs-cbindgen}/pkgs/development/libraries/fontconfig"
       { };
+  # NSS tools propagate older development headers; expose just their commands
+  # so offline signing does not alter the engine's selected NSS libraries.
+  marTools = pkgs.runCommand "bonsai-mar-tools" { } ''
+    mkdir -p "$out/bin"
+    for tool in certutil pk12util; do
+      ln -s "${pkgs.nss.tools}/bin/$tool" "$out/bin/$tool"
+    done
+  '';
   engineBuildInputs = map (
     p: if (p.pname or "") == "fontconfig" then fontconfig else p
   ) pkgs.firefox-unwrapped.buildInputs;
@@ -70,6 +78,9 @@ in
     pkgs.gnumake
     pkgs.unzip
     pkgs.zstd
+    # Offline MAR signing and public-only verification use NSS databases.
+    marTools
+    pkgs.openssl
     # C/C++ toolchain for building the engine. mozconfig forces
     # CC=clang/CXX=clang++, and the build links with lld.
     pkgs.clang

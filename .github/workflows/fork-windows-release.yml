@@ -85,6 +85,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Preserve unverified packages when later packaging or smoke tests fail
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unverified-packages
+          path: |
+            D:\bonsai\dist\*.win64.zip
+            D:\bonsai\engine\obj-*\dist\*.installer.exe
+            D:\bonsai\engine\obj-*\dist\bin\application.ini
+            D:\bonsai\engine\obj-*\dist\bin\platform.ini
+          if-no-files-found: warn
+          retention-days: 3
+
       - name: Upload build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

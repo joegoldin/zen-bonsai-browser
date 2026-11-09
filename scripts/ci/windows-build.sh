@@ -82,5 +82,6 @@ cp "${installers[0]}" artifacts/windows-release/zen.windows-x86_64.installer.exe
 # Signing is a separate trusted release step. Never publish this unsigned MAR.
 cp dist/output.mar artifacts/windows-release/windows.unsigned.mar
 cp "$objdir/dist/bin/application.ini" artifacts/windows-release/application.ini
+cp "$objdir/dist/bin/platform.ini" artifacts/windows-release/platform.ini
 
 (cd artifacts/windows-release && sha256sum zen.windows-x86_64.zip zen.windows-x86_64.installer.exe windows.unsigned.mar > SHA256SUMS)

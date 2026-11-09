@@ -27,6 +27,11 @@ on:
         description: "Fork version, e.g. 1.23.2b-bonsai.1"
         required: true
         type: string
+      artifacts_only:
+        description: "Build verification artifacts without publishing releases or AUR updates"
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -73,7 +78,7 @@ jobs:
           sudo apt-get install -y python3 python3-pip dos2unix yasm nasm build-essential \
             libgtk2.0-dev libpython3-dev m4 uuid libasound2-dev libcurl4-openssl-dev \
             libdbus-1-dev libdrm-dev libdbus-glib-1-dev libgtk-3-dev libpulse-dev \
-            libx11-xcb-dev libxt-dev xvfb lld llvm gh
+            libx11-xcb-dev libxt-dev xvfb lld llvm gh libnss3-tools openssl
           # The official self-hosted image is leaner than ubuntu-latest. Check
           # publishing's CLI now, not after the multi-hour build has finished.
           gh --version
@@ -94,6 +99,11 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Check source and packaging contracts before compiling
+        run: |
+          node --test scripts/tests/*.test.mjs
+          python3 -m unittest discover -s scripts/tests -p test_firefox_source.py
 
       - name: Surfer CI setup
         run: npm run surfer -- ci --brand release --display-version ${{ inputs.version }}
@@ -121,6 +131,9 @@ jobs:
           . "$HOME/.cargo/env"
           npm run import
 
+      - name: Install the fork's public updater certificate
+        run: bash scripts/mar_sign.sh -i
+
       - name: Build language packs
         run: sh scripts/download-language-packs.sh
 
@@ -139,6 +152,15 @@ jobs:
         run: |
           export SURFER_PLATFORM="linux"
           bash .github/workflows/src/release-build.sh
+
+      - name: Verify MAR trust and publication gates with disposable keys
+        run: |
+          set -euo pipefail
+          mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
+          test "${#objects[@]}" -eq 1
+          export SIGNMAR="$PWD/${objects[0]}/dist/bin/signmar"
+          export LD_LIBRARY_PATH="$PWD/${objects[0]}/dist/bin:${LD_LIBRARY_PATH:-}"
+          python3 -m unittest discover -s scripts/tests -p test_bonsai_mar.py -v
 
       - name: Package
         env:
@@ -159,7 +181,35 @@ jobs:
           path: ./zen.linux-x86_64.tar.xz
           retention-days: 7
 
+      - name: Prepare unsigned update for offline signing
+        run: |
+          set -euo pipefail
+          mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
+          test "${#objects[@]}" -eq 1
+          objdir=${objects[0]}
+          python3 - "$objdir/config.status.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          config = json.loads(Path(sys.argv[1]).read_text())["substs"]
+          for flag in ("MOZ_UPDATER", "MOZ_VERIFY_MAR_SIGNATURE"):
+              if config.get(flag) not in (True, 1, "1"):
+                  raise SystemExit(f"Standalone Linux release requires {flag}")
+          PY
+          mkdir -p artifacts/linux-update
+          cp dist/output.mar artifacts/linux-update/linux.unsigned.mar
+          cp "$objdir/dist/bin/application.ini" artifacts/linux-update/linux.application.ini
+          cp "$objdir/dist/bin/platform.ini" artifacts/linux-update/linux.platform.ini
+
+      - name: Upload unsigned update for offline signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-unsigned-update
+          path: artifacts/linux-update/*
+          retention-days: 7
+
       - name: Publish release
+        if: ${{ !inputs.artifacts_only }}
         env:
           # GITHUB_TOKEN cannot create releases here: it is granted
           # contents:write (visible in Set up job) and still gets HTTP 403
@@ -270,7 +320,18 @@ jobs:
               -C root .
           done
 
+      - name: Upload deb and rpm for combined release verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb-rpm
+          path: |
+            ./*.deb
+            ./*.rpm
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Attach to release
+        if: ${{ !inputs.artifacts_only }}
         env:
           # Same restriction as Publish release: uploading assets needs the
           # PAT, not the workflow token.
@@ -285,7 +346,8 @@ jobs:
   # container because .SRCINFO comes from makepkg and nothing else generates
   # it faithfully. Skipped when the AUR key is not configured.
   aur:
-    needs: build
+    if: ${{ !inputs.artifacts_only }}
+    needs: [build, package]
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
