@@ -24,6 +24,11 @@ export ZEN_RELEASE_BRANCH=release
 export ZEN_GA_DISABLE_PGO=1
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS=4
+# Keep toolchains and caches beside the source/object tree on the large volume.
+MOZBUILD_STATE_PATH="$(cygpath -w /d/mozbuild)"
+CARGO_HOME="$(cygpath -w /d/cargo-home)"
+RUSTUP_HOME="$(cygpath -w /d/rustup-home)"
+export MOZBUILD_STATE_PATH CARGO_HOME RUSTUP_HOME
 
 git config --global user.name 'github-actions[bot]'
 git config --global user.email 'github-actions[bot]@users.noreply.github.com'

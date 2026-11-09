@@ -67,21 +67,21 @@ jobs:
 
       - name: Build and package with the native Windows toolchain
         shell: cmd
-        working-directory: C:\bonsai
+        working-directory: D:\bonsai
         run: |
-          call C:\mozilla-build\start-shell.bat -here -c "cd /c/bonsai && bash scripts/ci/windows-build.sh"
+          call C:\mozilla-build\start-shell.bat -here -c "cd /d/bonsai && bash scripts/ci/windows-build.sh"
           exit /b %ERRORLEVEL%
 
       - name: Test full installer and installed browser startup
         shell: pwsh
-        working-directory: C:\bonsai
+        working-directory: D:\bonsai
         run: ./scripts/ci/test-windows-install.ps1
 
       - name: Upload Windows build for release verification
         uses: actions/upload-artifact@v4
         with:
           name: zen.windows-x86_64
-          path: C:\bonsai\artifacts\windows-release\*
+          path: D:\bonsai\artifacts\windows-release\*
           if-no-files-found: error
           retention-days: 7
 
@@ -91,7 +91,7 @@ jobs:
         with:
           name: windows-build-diagnostics
           path: |
-            C:\bonsai\engine\obj-*\config.log
-            C:\bonsai\engine\obj-*\.mozbuild\logs\build\*
+            D:\bonsai\engine\obj-*\config.log
+            D:\bonsai\engine\obj-*\.mozbuild\logs\build\*
           if-no-files-found: warn
           retention-days: 7

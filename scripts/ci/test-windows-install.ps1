@@ -19,7 +19,7 @@ function Invoke-TestProcess {
     }
 }
 
-$artifacts = 'C:\bonsai\artifacts\windows-release'
+$artifacts = 'D:\bonsai\artifacts\windows-release'
 $temporary = Join-Path $env:RUNNER_TEMP ('bonsai-install-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temporary | Out-Null
 $target = Join-Path $temporary 'application'

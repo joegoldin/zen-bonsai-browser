@@ -8,36 +8,21 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONME
     throw 'This bootstrap is only for ephemeral GitHub-hosted Windows runners.'
 }
 
-# The source and object directory need more than the hosted image guarantees.
-# Reclaim only unused Android, Java and Haskell tools on this disposable runner;
-# keep MSVC, the Windows SDK, Rust, Node, Python and all security protections.
+# The hosted image has little free OS space but a large temporary D: volume.
+# Put sources, objects and downloaded toolchains there instead of deleting SDKs.
 Get-PSDrive -PSProvider FileSystem | Select-Object Name, Used, Free | Format-Table
-$unused = @(
-    'C:\Android', 'C:\ghcup', 'C:\Program Files\Java',
-    'C:\Program Files\Eclipse Adoptium'
-)
-$unused += @(Get-ChildItem -LiteralPath 'C:\hostedtoolcache\windows' -Filter 'Java*' -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
-$unused += @(Get-ChildItem -LiteralPath 'C:\Program Files\Microsoft' -Filter 'jdk*' -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
-foreach ($path in $unused) {
-    if ((Get-PSDrive C).Free -ge 45GB) {
-        break
-    }
-    if (Test-Path -LiteralPath $path) {
-        Write-Output "Reclaiming unused tool directory: $path"
-        Remove-Item -LiteralPath $path -Recurse -Force
-    }
+if (-not (Get-PSDrive D -ErrorAction SilentlyContinue) -or (Get-PSDrive D).Free -lt 45GB) {
+    throw 'The Windows build needs at least 45 GiB free on its D: build volume.'
 }
-$freeGiB = [math]::Round((Get-PSDrive C).Free / 1GB, 2)
-Write-Output "Free space on C: after cleanup: $freeGiB GiB"
-if ((Get-PSDrive C).Free -lt 45GB) {
-    throw "The Windows build needs at least 45 GiB free on C:; available: $freeGiB GiB."
+if ((Get-PSDrive C).Free -lt 5GB) {
+    throw 'MozillaBuild installation needs at least 5 GiB free on C:.'
 }
 
 # A short source path avoids MAX_PATH failures in vendored dependency names.
 # Keep the checkout intact for the checkout action's authentication cleanup.
-$source = 'C:\bonsai'
+$source = 'D:\bonsai'
 if (Test-Path -LiteralPath $source) {
-    throw 'Unexpected existing C:\bonsai; refusing to overwrite it.'
+    throw 'Unexpected existing D:\bonsai; refusing to overwrite it.'
 }
 Copy-Item -LiteralPath $env:GITHUB_WORKSPACE -Destination $source -Recurse
 
