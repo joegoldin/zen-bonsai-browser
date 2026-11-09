@@ -41,6 +41,7 @@ npm ci
 node --test scripts/tests/*.test.mjs
 python3 -m unittest discover -s scripts/tests -p 'test_firefox_source.py'
 python3 -m unittest discover -s scripts/tests -p 'test_build_identity.py'
+python3 -m unittest discover -s scripts/tests -p 'test_windows_runtime.py'
 npm run surfer -- ci --brand release --display-version "$BONSAI_VERSION"
 
 toolchain=$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')
@@ -72,7 +73,10 @@ for flag in ("MOZ_UPDATER", "MOZ_VERIFY_MAR_SIGNATURE"):
     if config.get(flag) not in (True, 1, "1"):
         raise SystemExit(f"Windows release requires {flag}")
 PY
+# Fail before the expensive build if bootstrap did not provide redistributables.
+python3 scripts/check_windows_runtime.py "$objdir/config.status.json"
 (cd engine && ./mach build -j4)
+python3 scripts/check_windows_runtime.py "$objdir/config.status.json" "$objdir/dist/bin"
 python3 - "$objdir/dist/bin/application.ini" <<'PY'
 import configparser
 import sys
@@ -93,6 +97,7 @@ if [[ ${#archives[@]} != 1 || ${#installers[@]} != 1 ]]; then
   echo 'Expected one win64 archive and one full NSIS installer; stub installers are not shipped.' >&2
   exit 1
 fi
+python3 scripts/check_windows_runtime.py "$objdir/config.status.json" "$objdir/dist/bin" --archive "${archives[0]}"
 cp "${archives[0]}" artifacts/windows-release/zen.windows-x86_64.zip
 cp "${installers[0]}" artifacts/windows-release/zen.windows-x86_64.installer.exe
 # Signing is a separate trusted release step. Never publish this unsigned MAR.
