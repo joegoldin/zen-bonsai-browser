@@ -268,6 +268,7 @@ class BonsaiMarTests(unittest.TestCase):
             shutil.copyfile(self.signed, self.artifacts / f"{platform}.mar")
             (self.artifacts / f"{platform}.application.ini").write_text(
                 f"[App]\nName=Zen Bonsai\nVersion={VERSION}\nBuildID=20261109010101\n"
+                "[AppUpdate]\nURL=https://updates.zen-bonsai.dev/updates/browser/%BUILD_TARGET%/%CHANNEL%/update.xml\n"
             )
             (self.artifacts / f"{platform}.platform.ini").write_text(
                 "[Build]\nBuildID=20261109010101\nMilestone=160.0\n"
@@ -325,6 +326,28 @@ class BonsaiMarTests(unittest.TestCase):
         path.write_text(path.read_text().replace(VERSION, "160.0"))
         with self.assertRaisesRegex(Exception, "version"):
             self.bundle(self.work / "bundle")
+
+    def test_bundle_rejects_an_upstream_compiled_update_endpoint(self):
+        self.make_artifacts()
+        path = self.artifacts / "windows.application.ini"
+        path.write_text(
+            path.read_text().replace(
+                "updates.zen-bonsai.dev", "updates.zen-browser.app"
+            )
+        )
+        output = self.work / "bundle"
+        with self.assertRaisesRegex(Exception, "update URL"):
+            self.bundle(output)
+        self.assertFalse(output.exists())
+
+    def test_bundle_rejects_missing_compiled_update_endpoint(self):
+        self.make_artifacts()
+        path = self.artifacts / "linux.application.ini"
+        path.write_text(path.read_text().split("[AppUpdate]")[0])
+        output = self.work / "bundle"
+        with self.assertRaisesRegex(Exception, "update URL"):
+            self.bundle(output)
+        self.assertFalse(output.exists())
 
     def test_bundle_rejects_build_id_mismatch(self):
         self.make_artifacts()

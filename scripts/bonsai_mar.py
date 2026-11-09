@@ -194,6 +194,14 @@ def sign(signmar, archive, output, certificate, key, channel, version):
             staged.unlink(missing_ok=True)
 
 
+def validate_update_endpoint(application):
+    expected = "https://updates.zen-bonsai.dev/updates/browser/%BUILD_TARGET%/%CHANNEL%/update.xml"
+    if application.get("AppUpdate", "URL", fallback="") != expected:
+        raise MarError(
+            "Compiled application update URL must use the fork-owned host and path"
+        )
+
+
 def build_bundle(signmar, artifacts, output, channel, version, certificate=CERTIFICATE):
     if not re.fullmatch(r"[0-9][0-9A-Za-z.]*-bonsai\.[0-9]+", version):
         raise MarError("Expected a Bonsai version")
@@ -232,6 +240,7 @@ def build_bundle(signmar, artifacts, output, channel, version, certificate=CERTI
                 inputs[suffix] = path
             application = configparser.ConfigParser(interpolation=None)
             application.read(inputs["application.ini"])
+            validate_update_endpoint(application)
             build = configparser.ConfigParser(interpolation=None)
             build.read(inputs["platform.ini"])
             if application.get("App", "Version", fallback="") != version:

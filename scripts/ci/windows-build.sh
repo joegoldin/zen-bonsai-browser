@@ -67,6 +67,15 @@ for flag in ("MOZ_UPDATER", "MOZ_VERIFY_MAR_SIGNATURE"):
         raise SystemExit(f"Windows release requires {flag}")
 PY
 (cd engine && ./mach build -j4)
+python3 - "$objdir/dist/bin/application.ini" <<'PY'
+import configparser
+import sys
+from scripts.bonsai_mar import validate_update_endpoint
+
+application = configparser.ConfigParser(interpolation=None)
+application.read(sys.argv[1])
+validate_update_endpoint(application)
+PY
 npm run package
 (cd engine && ./mach build installer)
 

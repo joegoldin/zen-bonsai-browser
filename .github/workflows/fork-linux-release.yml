@@ -153,13 +153,29 @@ jobs:
           export SURFER_PLATFORM="linux"
           bash .github/workflows/src/release-build.sh
 
-      - name: Verify MAR trust and publication gates with disposable keys
+      - name: Verify compiled updater ownership and MAR trust with disposable keys
         run: |
           set -euo pipefail
           mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
           test "${#objects[@]}" -eq 1
           export SIGNMAR="$PWD/${objects[0]}/dist/bin/signmar"
           export LD_LIBRARY_PATH="$PWD/${objects[0]}/dist/bin:${LD_LIBRARY_PATH:-}"
+          python3 - "${objects[0]}" <<'PY'
+          import configparser
+          import json
+          import sys
+          from pathlib import Path
+          from scripts.bonsai_mar import validate_update_endpoint
+
+          objdir = Path(sys.argv[1])
+          config = json.loads((objdir / "config.status.json").read_text())["substs"]
+          for flag in ("MOZ_UPDATER", "MOZ_VERIFY_MAR_SIGNATURE"):
+              if config.get(flag) not in (True, 1, "1"):
+                  raise SystemExit(f"Standalone Linux release requires {flag}")
+          application = configparser.ConfigParser(interpolation=None)
+          application.read(objdir / "dist/bin/application.ini")
+          validate_update_endpoint(application)
+          PY
           python3 -m unittest discover -s scripts/tests -p test_bonsai_mar.py -v
 
       - name: Package
@@ -187,15 +203,6 @@ jobs:
           mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
           test "${#objects[@]}" -eq 1
           objdir=${objects[0]}
-          python3 - "$objdir/config.status.json" <<'PY'
-          import json
-          import sys
-          from pathlib import Path
-          config = json.loads(Path(sys.argv[1]).read_text())["substs"]
-          for flag in ("MOZ_UPDATER", "MOZ_VERIFY_MAR_SIGNATURE"):
-              if config.get(flag) not in (True, 1, "1"):
-                  raise SystemExit(f"Standalone Linux release requires {flag}")
-          PY
           mkdir -p artifacts/linux-update
           cp dist/output.mar artifacts/linux-update/linux.unsigned.mar
           cp "$objdir/dist/bin/application.ini" artifacts/linux-update/linux.application.ini

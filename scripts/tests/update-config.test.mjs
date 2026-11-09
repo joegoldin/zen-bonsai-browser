@@ -10,12 +10,27 @@ import configuration from "../../surfer.json" with { type: "json" };
 test("release builds attribute their source to the fork", () => {
   const mozconfig = readFileSync(
     new URL("../../configs/common/mozconfig", import.meta.url),
-    "utf8"
+    "utf8",
   );
   assert.match(
     mozconfig,
-    /^export MOZ_SOURCE_REPO=https:\/\/github\.com\/joegoldin\/zen-bonsai-browser$/m
+    /^export MOZ_SOURCE_REPO=https:\/\/github\.com\/joegoldin\/zen-bonsai-browser$/m,
   );
+});
+
+test("the compiled application update host matches the fork configuration", () => {
+  const patch = readFileSync(
+    new URL("../../src/build/moz-build.patch", import.meta.url),
+    "utf8",
+  );
+  const compiledHost = patch.match(
+    /^\+\s+appini_defines\["MOZ_APPUPDATE_HOST"\] = "([^"]+)"$/m,
+  );
+  assert.ok(
+    compiledHost,
+    "The Firefox build patch must define its owned update host",
+  );
+  assert.equal(compiledHost[1], configuration.updateHostname);
 });
 
 test("Bonsai update checks use the fork-owned HTTPS host", () => {
