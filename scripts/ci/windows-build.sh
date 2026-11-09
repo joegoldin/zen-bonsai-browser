@@ -86,8 +86,9 @@ application = configparser.ConfigParser(interpolation=None)
 application.read(sys.argv[1])
 validate_update_endpoint(application)
 PY
+# Surfer packaging already creates the full NSIS installer; Firefox 160 has no
+# standalone "mach build installer" target. Validate its output below instead.
 npm run package
-(cd engine && ./mach build installer)
 python3 scripts/check_build_identity.py "$objdir/dist/bin/zen.exe"
 
 mkdir -p artifacts/windows-release

@@ -211,3 +211,19 @@ test("Debian packages select genuine ALSA rather than the incomplete OSS provide
     ),
   );
 });
+
+test("native Windows packaging reuses the full installer produced by Surfer", () => {
+  const build = readFileSync(
+    new URL("../ci/windows-build.sh", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(build, /\.\/mach build installer\b/);
+  assert.match(build, /^npm run package$/m);
+  assert.ok(build.includes("-name '*.installer.exe'"));
+  assert.ok(build.includes('${#installers[@]} != 1'));
+  assert.ok(
+    build.includes(
+      'cp "${installers[0]}" artifacts/windows-release/zen.windows-x86_64.installer.exe',
+    ),
+  );
+});
