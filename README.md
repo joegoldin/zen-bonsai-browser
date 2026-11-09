@@ -54,6 +54,18 @@ collapses the subtree. The structure is written into the session as
 being rebuilt from heuristics. Middle-drag selects and closes across a subtree.
 Lives in `src/zen/tab-tree`, with mochitests in `src/zen/tests/tab-tree`.
 
+The same public tabs in clean Bonsai profiles, with matching window and sidebar
+sizes:
+
+**Tree-style tabs enabled** — HTML, CSS and JavaScript nest under the learning
+page; CSS grid nests one level deeper.
+
+![Zen Bonsai with tree-style tabs enabled, showing nested MDN tabs beside the public Bonsai README](./docs/assets/tree-tabs-on.png)
+
+**Tree-style tabs disabled** — the same tabs appear in a flat list.
+
+![Zen Bonsai with tree-style tabs disabled, showing the same MDN tabs in a flat list beside the public Bonsai README](./docs/assets/tree-tabs-off.png)
+
 #### Managed Spaces
 
 `src/zen/space-routing/ZenManagedSpaces.sys.mjs` lets Spaces and their
