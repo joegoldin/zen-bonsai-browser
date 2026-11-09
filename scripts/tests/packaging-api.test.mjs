@@ -199,3 +199,15 @@ test(
     );
   },
 );
+
+test("Debian packages select genuine ALSA rather than the incomplete OSS provider", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/fork-linux-release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.ok(
+    workflow.includes(
+      '--depends "libasound2t64 (>= 1.0.16) | libasound2 (>= 1.0.16)"',
+    ),
+  );
+});
