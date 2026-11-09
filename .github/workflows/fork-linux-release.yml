@@ -67,6 +67,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Pin one build identity across compilation and packaging
+        run: printf 'MOZ_BUILD_DATE=%s\n' "$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_ENV"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -104,6 +107,7 @@ jobs:
         run: |
           node --test scripts/tests/*.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_firefox_source.py
+          python3 -m unittest discover -s scripts/tests -p test_build_identity.py
 
       - name: Surfer CI setup
         run: npm run surfer -- ci --brand release --display-version ${{ inputs.version }}
@@ -186,6 +190,9 @@ jobs:
           export SURFER_PLATFORM="linux"
           export ZEN_RELEASE=1
           npm run package
+          mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
+          test "${#objects[@]}" -eq 1
+          python3 scripts/check_build_identity.py "${objects[0]}/dist/bin/zen"
 
       - name: Rename artifact
         run: mv dist/zen-*.tar.xz "zen.linux-x86_64.tar.xz"

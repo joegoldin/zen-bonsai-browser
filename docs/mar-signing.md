@@ -20,6 +20,12 @@ an archive filename and the configured binary name. It leaves an already-fixed
 caller unchanged and fails installation if the caller has an unfamiliar shape.
 The Node tests check both Linux and Windows arguments before compilation.
 
+Both CI jobs pin one UTC `MOZ_BUILD_DATE` across compilation and packaging.
+Packaging can regenerate INI files without rebuilding the executable;
+`scripts/check_build_identity.py` therefore checks `--full-version` against both
+INI files before accepting artifacts. Otherwise, update metadata can advertise
+a newer build ID than the installed binary and repeatedly offer the same update.
+
 ## Sign and verify
 
 Use the compiled engine's `dist/bin/signmar`, not `dist/host/bin/mar`: the

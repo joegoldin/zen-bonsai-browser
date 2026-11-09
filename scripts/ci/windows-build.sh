@@ -17,6 +17,11 @@ if [[ ! ${BONSAI_VERSION:-} =~ ^[0-9][0-9A-Za-z.]*-bonsai\.[0-9]+$ ]]; then
   exit 1
 fi
 
+if [[ ! ${MOZ_BUILD_DATE:-} =~ ^[0-9]{14}$ ]]; then
+  echo 'MOZ_BUILD_DATE must be the UTC build timestamp shared by every build/package step.' >&2
+  exit 1
+fi
+
 export SURFER_PLATFORM=win32
 export SURFER_COMPAT=x86_64
 export ZEN_RELEASE=1
@@ -35,6 +40,7 @@ git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 npm ci
 node --test scripts/tests/*.test.mjs
 python3 -m unittest discover -s scripts/tests -p 'test_firefox_source.py'
+python3 -m unittest discover -s scripts/tests -p 'test_build_identity.py'
 npm run surfer -- ci --brand release --display-version "$BONSAI_VERSION"
 
 toolchain=$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')
@@ -78,6 +84,7 @@ validate_update_endpoint(application)
 PY
 npm run package
 (cd engine && ./mach build installer)
+python3 scripts/check_build_identity.py "$objdir/dist/bin/zen.exe"
 
 mkdir -p artifacts/windows-release
 mapfile -t archives < <(find dist -maxdepth 1 -type f -name '*.win64.zip')

@@ -35,6 +35,9 @@ if ($version -notmatch '^[0-9][0-9A-Za-z.]*-bonsai\.[0-9]+\z') {
     throw 'Expected a Bonsai release version, such as 1.25t-bonsai.1.'
 }
 "BONSAI_VERSION=$version" | Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
+# Packaging starts another mach process; its metadata must retain the binary's ID.
+$buildDate = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss')
+"MOZ_BUILD_DATE=$buildDate" | Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
 
 $installer = Join-Path $env:RUNNER_TEMP 'MozillaBuildSetup-4.2.1.exe'
 Invoke-WebRequest -Uri 'https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-4.2.1.exe' -OutFile $installer
