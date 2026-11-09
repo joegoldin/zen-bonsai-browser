@@ -1,0 +1,97 @@
+name: Fork Windows release build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Fork version, e.g. 1.25t-bonsai.1"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/fork-windows-release.yml"
+      - "scripts/**"
+      - "src/**"
+      - "configs/**"
+      - "prefs/**"
+      - "locales/**"
+      - "tools/ffprefs/**"
+      - "build/signing/public_key.der"
+      - "package*.json"
+      - "surfer.json"
+      - "rust-toolchain.toml"
+      - ".nvmrc"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Windows x86_64
+    # The local Windows VM is an installation/update test target, not a runner.
+    runs-on: windows-2025
+    timeout-minutes: 360
+    env:
+      BONSAI_VERSION: ${{ inputs.version }}
+      USE_MINTTY: "0"
+    steps:
+      - name: Keep patch files LF and allow long source paths
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install checksum-pinned MozillaBuild
+        shell: pwsh
+        run: ./scripts/ci/setup-windows.ps1
+
+      - name: Build and package with the native Windows toolchain
+        shell: cmd
+        working-directory: C:\bonsai
+        run: |
+          call C:\mozilla-build\start-shell.bat -here -c "cd /c/bonsai && bash scripts/ci/windows-build.sh"
+          exit /b %ERRORLEVEL%
+
+      - name: Test full installer and installed browser startup
+        shell: pwsh
+        working-directory: C:\bonsai
+        run: ./scripts/ci/test-windows-install.ps1
+
+      - name: Upload Windows build for release verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: zen.windows-x86_64
+          path: C:\bonsai\artifacts\windows-release\*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-diagnostics
+          path: |
+            C:\bonsai\engine\obj-*\config.log
+            C:\bonsai\engine\obj-*\.mozbuild\logs\build\*
+          if-no-files-found: warn
+          retention-days: 7

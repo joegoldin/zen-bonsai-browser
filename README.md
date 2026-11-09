@@ -12,18 +12,16 @@ with native tree-style tabs.
 
 [![Crowdin](https://badges.crowdin.net/zen-browser/localized.svg)](https://crowdin.com/project/zen-browser)
 
-Tree-style tabs built into the browser rather than layered on with userChrome
+Tree-style tabs are built into the browser rather than layered on with userChrome
 CSS or an extension. Tabs nest under a parent, collapse, and keep their shape
-across a restart. Everything else is stock Zen, tracking upstream `dev`.
+across a restart. The fork tracks upstream `dev` and also includes the Space
+and container changes described below.
 
 ---
 
 > [!WARNING]
->  ### Disclaimer
->
->  This fork is provided "as is", without warranty of any kind. It it "works on my machine", but no guarantees! Use at your own risk. The author(s) accept no liability for any damage, data loss, or other issues arising from its use.
->
-> That said, I hope you enjoy! Please post an issue if you have any problems with tree-style-tabs.
+> This fork is provided "as is", without warranty. Back up your profile before
+> trying it or switching between Bonsai and stock Zen.
 
 > [!IMPORTANT]
 > ### Unofficial fork
@@ -148,21 +146,19 @@ so it will drive this fork's source build instead:
 }
 ```
 
-All of that module works against this package, sine mods included. Sine needed
-help: it installs its bootloader by globbing `lib/zen-bin-*`, which is how that
-flake's repacked tarball is laid out and not how a `mach` build is, so
-`nix/package.nix` links that name to the real application directory. It finds
-that directory rather than assuming it, because `buildMozillaMach` has renamed
-it before.
+The module also supports Sine mods. Sine looks for `lib/zen-bin-*`, the layout
+used by the prebuilt tarball. A `mach` build uses a different directory, so
+`nix/package.nix` adds a compatibility symlink.
 
-`nix/zen-browser.nix` reads the Firefox version out of `surfer.json` so the
-fetched source always matches the base the patches target. The source hash next
-to it is pinned by hand and has to move with it.
+`nix/zen-browser.nix` reads the Firefox version from `surfer.json`. Candidate
+builds also pin their archive URL and hash there; Nix and the CI download
+wrapper use the same archive. The current Firefox 160 source is build 1 of the
+release candidate, not the final release.
 
 `flake.nix` keeps a second, newer nixpkgs for the versions configure insists
-on. The overlay takes `rust-cbindgen` and `nss_latest` from it: configure
-requires a system NSS at least as new as the one Firefox bundles, 3.129 on
-Firefox 157, and `nixos-26.05` is behind that. The macOS `apple-sdk_26` it also
+on. The overlay uses the newer `rust-cbindgen` and builds its `nss_latest`
+expression against the base package set. Configure requires a system NSS at
+least as new as the one Firefox bundles; `nixos-26.05` is behind that. The macOS `apple-sdk_26` it also
 supplies will not catch up at all: 26.05 branched before nixpkgs bumped that to
 26.5 and never took the backport, so it stays at 26.4 for the life of the
 release.
@@ -187,10 +183,15 @@ in [docs/fork-maintenance.md](./docs/fork-maintenance.md).
 
 ### Contributing
 
-Bugs and feature requests for the fork's own behaviour go to
-[this repo's issues](https://github.com/joegoldin/zen-bonsai-browser/issues).
-Anything that reproduces on stock Zen belongs
-[upstream](https://github.com/zen-browser/desktop/issues) instead.
+Anyone is welcome to [open an issue](https://github.com/joegoldin/zen-bonsai-browser/issues/new/choose).
+Use the single issue form for bugs, tree-style tab requests, or installation
+and packaging problems. You don't need to be a collaborator to report an issue.
 
-Upstream's [contribution guidelines](./docs/contribute.md) still apply to the
-shared code.
+Pull requests are limited to repository collaborators. This keeps development
+focused on tree-style tabs and the changes needed to maintain the fork.
+Feature changes unrelated to tree-style tabs should go to
+[upstream Zen](https://github.com/zen-browser/desktop), not this fork. Bugs that
+also happen in stock Zen belong in
+[upstream's issues](https://github.com/zen-browser/desktop/issues).
+
+Upstream's [contribution guidelines](./docs/contribute.md) apply to shared code.

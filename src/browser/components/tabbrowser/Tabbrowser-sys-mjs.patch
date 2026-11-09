@@ -1331,8 +1331,8 @@ index 430e1137a15f0aa8c5f39fd76127f825b2751c69..311f8696f6e5dbe9e8641009adb0f2d0
            this._tab.setAttribute("busy", "true");
 +          if (!this._tab.selected) this._tab.setAttribute("unread", "true");
            this.#tabbrowser._tabAttrModified(this._tab, ["busy"]);
-           this._tab._notselectedsinceload = !this._tab.selected;
-         }
+           if (this._tab.selected) {
+             TabProgressListener.#tabsNotSelectedSinceLoad.delete(this._tab);
 @@ -10716,6 +11101,7 @@ class TabProgressListener {
        // known defaults. Note we use the original URL since about:newtab
        // redirects to a prerendered page.

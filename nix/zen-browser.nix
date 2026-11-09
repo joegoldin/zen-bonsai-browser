@@ -26,6 +26,7 @@
 }:
 let
   zen-src = zen-src-tree;
+  source-config = builtins.fromJSON (builtins.readFile "${zen-src}/surfer.json");
 
   assets = import ./assets.nix { inherit branding surfer-config writeText; };
 
@@ -41,14 +42,20 @@ let
   };
 
   firefox-src = fetchurl {
-    url = "mirror://mozilla/firefox/releases/${firefox-version}/source/firefox-${firefox-version}.source.tar.xz";
-    hash = "sha512-5zdcDBg2GyL6HS5v1fak/yCyLnCQpkvzLX73ntsKZJmDQ5uOboAQb+UbuWaZvdMJbJIf4ZjRtGAZOmbW2PInpA==";
+    # Candidate archives are pinned explicitly until the final release exists.
+    # Surfer's download wrapper reads the same URL and digest for CI builds.
+    url =
+      source-config.version.source.url
+        or "mirror://mozilla/firefox/releases/${firefox-version}/source/firefox-${firefox-version}.source.tar.xz";
+    hash =
+      source-config.version.source.hash
+        or "sha512-5zdcDBg2GyL6HS5v1fak/yCyLnCQpkvzLX73ntsKZJmDQ5uOboAQb+UbuWaZvdMJbJIf4ZjRtGAZOmbW2PInpA==";
   };
 
   # Read from surfer.json so the fetched Firefox source always matches the base
   # the Zen patches target (see the header comment). Only the hash above is
   # pinned manually.
-  firefox-version = (builtins.fromJSON (builtins.readFile "${zen-src}/surfer.json")).version.version;
+  firefox-version = source-config.version.version;
 
   # Hard-coded from the fork's surfer.json (kept in sync manually; these values
   # change very rarely). Drives the branding strings in assets.nix.
@@ -78,7 +85,7 @@ let
   # tree-style-tabs fork and increments for fork-only fixes between upstream
   # releases. It names the store path and the reported application version; the
   # Firefox base is read from surfer.json and stays correct on its own.
-  zen-version = "1.24.1b-bonsai.1";
+  zen-version = "1.25t-bonsai.1";
 in
 {
   inherit

@@ -41,9 +41,7 @@ class nsZenTabTree extends nsZenDOMOperatedFeature {
   #rebuildScheduled = false;
 
   init() {
-    this.#enabled =
-      Services.prefs.getBoolPref("zen.tab-tree.enabled", true) &&
-      !gZenWorkspaces.privateWindowOrDisabled;
+    this.#enabled = Services.prefs.getBoolPref("zen.tab-tree.enabled", true);
     if (!this.#enabled) {
       return;
     }
@@ -146,6 +144,10 @@ class nsZenTabTree extends nsZenDOMOperatedFeature {
   }
 
   isTreeEligible(node) {
+    // Private and unsynced windows have local trees, never cross-window nodes.
+    if (node?.ownerDocument !== document) {
+      return false;
+    }
     if (this.#isSplitGroup(node)) {
       return !node.pinned && !node.hasAttribute("zen-essential");
     }
