@@ -7,6 +7,7 @@
   apple-sdk_26,
   buildMozillaMach,
   callPackage,
+  fontconfig,
   stdenv,
   zen-src-tree,
 }:
@@ -57,7 +58,7 @@ let
         # this derivation instead of rebuilding the ~450 Darwin packages that
         # also reference apple-sdk_26. Inert on Linux, where the SDK is never
         # forced.
-        inherit apple-sdk_26;
+        inherit apple-sdk_26 fontconfig;
         # ltoSupport stays at buildMozillaMach's default (true on x86_64-linux):
         # it wires up the LLVM/lld bintools. We only change the LTO *mode* below.
         #
@@ -72,6 +73,15 @@ in
 # in a single ~32 GB process and OOM-thrashed this 62 GB box for 14 h. Rewrite it
 # to thin cross-LTO: per-module, parallel, bounded link memory, for ~90-95% of
 # the runtime perf.
+assert lib.assertMsg (
+  !stdenv.isLinux || lib.versionAtLeast fontconfig.version "2.18.3"
+) "Zen Bonsai Linux builds require Fontconfig >= 2.18.3";
+# Nix owns application updates. Fail evaluation if a future nixpkgs pin
+# accidentally enables the browser's independent update mechanism.
+assert lib.assertMsg (
+  lib.elem "--disable-updater" base.configureFlags
+  && !(lib.elem "--enable-updater" base.configureFlags)
+) "Zen Bonsai Nix builds must keep the in-app updater disabled";
 base.overrideAttrs (old: {
   # Firefox 157 dropped the ffmpeg option (toolkit/moz.configure now enables
   # it for every non-Android, non-Windows target), but buildMozillaMach still

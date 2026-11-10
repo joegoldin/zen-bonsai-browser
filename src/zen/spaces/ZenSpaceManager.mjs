@@ -1609,8 +1609,7 @@ class nsZenWorkspaces {
   get shouldShowContainers() {
     return (
       !this.isPrivateWindow &&
-      Services.prefs.getBoolPref("privacy.userContext.ui.enabled") &&
-      !!ContextualIdentityService.getPublicIdentities().length
+      Services.prefs.getBoolPref("privacy.userContext.ui.enabled")
     );
   }
 

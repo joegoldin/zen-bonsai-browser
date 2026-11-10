@@ -4,6 +4,22 @@ let
   # 0.29.4, which the pinned nixpkgs predates. Take just this tool from a newer
   # nixpkgs (see devenv.yaml) rather than moving the whole toolchain.
   cbindgen = inputs.nixpkgs-cbindgen.legacyPackages.${pkgs.stdenv.system}.rust-cbindgen;
+  # 2.17.1 crashes in FcNameUnparse on this host's font data, independently
+  # of Firefox. Build the fixed expression against our base ABI, like NSS.
+  fontconfig =
+    pkgs.callPackage "${inputs.nixpkgs-cbindgen}/pkgs/development/libraries/fontconfig"
+      { };
+  # NSS tools propagate older development headers; expose just their commands
+  # so offline signing does not alter the engine's selected NSS libraries.
+  marTools = pkgs.runCommand "bonsai-mar-tools" { } ''
+    mkdir -p "$out/bin"
+    for tool in certutil pk12util; do
+      ln -s "${pkgs.nss.tools}/bin/$tool" "$out/bin/$tool"
+    done
+  '';
+  engineBuildInputs = map (
+    p: if (p.pname or "") == "fontconfig" then fontconfig else p
+  ) pkgs.firefox-unwrapped.buildInputs;
   # Firefox allocates through its own bundled mozjemalloc, and nothing under
   # dist/bin links nixpkgs' jemalloc (`ldd dist/bin/firefox | grep jemalloc` is
   # empty) — it is a build-time input only. Left on LD_LIBRARY_PATH it gets
@@ -13,8 +29,7 @@ let
   # `uv: undefined symbol: _rjem_malloc`, which takes out `mach lint` before it
   # reaches a linter. Keep it out of the runtime path.
   isJemalloc = p: pkgs.lib.hasPrefix "jemalloc" (p.pname or p.name or "");
-  runtimeEngineInputs =
-    builtins.filter (p: !(isJemalloc p)) pkgs.firefox-unwrapped.buildInputs;
+  runtimeEngineInputs = builtins.filter (p: !(isJemalloc p)) engineBuildInputs;
   # Loader path for the engine's libraries. firefox-unwrapped.buildInputs
   # carries -dev outputs whose /lib holds pkg-config data but not the runtime
   # .so files, so pull each input's `out` and `lib` outputs (the .so may live
@@ -63,6 +78,9 @@ in
     pkgs.gnumake
     pkgs.unzip
     pkgs.zstd
+    # Offline MAR signing and public-only verification use NSS databases.
+    marTools
+    pkgs.openssl
     # C/C++ toolchain for building the engine. mozconfig forces
     # CC=clang/CXX=clang++, and the build links with lld.
     pkgs.clang
@@ -78,7 +96,7 @@ in
   ]
   # Native libraries Zen/Firefox links against (gtk3, alsa, X11, nss, dbus,
   # ...). Reuse nixpkgs' Firefox dependency set instead of hand-maintaining it.
-  ++ pkgs.firefox-unwrapped.buildInputs;
+  ++ engineBuildInputs;
 
   # rust bindgen (style system) needs libclang at build time.
   env.LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
@@ -88,7 +106,7 @@ in
   # build scripts, plus the dlopen'd runtime libs (libgtk-3, X11, nss, ...)
   # that `mach run`/`mach test` need.
   enterShell = ''
-    export LD_LIBRARY_PATH="''${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${engineLibPath}"
+    export LD_LIBRARY_PATH="${fontconfig.lib}/lib:''${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${engineLibPath}"
 
     # The mochitest runner launches helper binaries with a sanitized environment
     # that drops LD_LIBRARY_PATH. ssltunnel (the SSL proxy that routes

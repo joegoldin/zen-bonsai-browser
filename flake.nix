@@ -5,14 +5,14 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     # Build inputs configure is strict about, where nixos-26.05 lags: cbindgen
     # below 0.29.4, and nss below the version Firefox bundles (configure wants
-    # system nss >= security/nss/lib/nss/nss.h, 3.131 on Firefox 159), and — on
-    # macOS — an Apple SDK below 26.5. Pinned to the NSS 3.131 update so the
+    # system nss >= security/nss/lib/nss/nss.h, 3.132 on Firefox 160), and — on
+    # macOS — an Apple SDK below 26.5. Pinned to the NSS 3.132 update so the
     # browser's required version is available without moving the base pin. The SDK is
     # not a matter of waiting: nixpkgs bumped apple-sdk_26 to 26.5 in a81408d1
     # (2026-05-17), after the 26.05 branch-off, and never backported it, so both
     # nixos-26.05 and nixpkgs-26.05-darwin are stuck at 26.4 for the life of
     # the release.
-    nixpkgs-newer.url = "github:NixOS/nixpkgs/40e2bf74e0a965f1dcd08f3b4088207d4d71a4c4";
+    nixpkgs-newer.url = "github:NixOS/nixpkgs/806ae6af4159c4e7d03558ad683530510072de9a";
   };
 
   outputs =
@@ -64,6 +64,10 @@
           # referenced (locally: the checkout; from dotfiles: the pinned rev).
           zen-bonsai-browser-unwrapped = pkgs.callPackage ./nix/package.nix {
             zen-src-tree = self;
+            # Keep this scoped to Zen: overlaying Fontconfig would rebuild
+            # the GTK/Pango dependency tree. 2.17.1 crashes in FcNameUnparse
+            # on valid host font data; 2.18.3 passes the same full-font probe.
+            fontconfig = pkgs.callPackage "${nixpkgs-newer}/pkgs/development/libraries/fontconfig" { };
             # The 26.5 SDK macOS needs, built by the *pinned* nixpkgs rather
             # than taken from nixpkgs-newer wholesale: apple-sdk's package.nix
             # and setup-hooks/ are byte-identical between the two pins, so
@@ -96,9 +100,17 @@
           zen-browser-unwrapped = zen-bonsai-browser-unwrapped;
           default = zen-bonsai-browser-unwrapped;
         }
+        // pkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          windows-vm = import ./nix/windows-vm.nix { inherit pkgs; };
+        }
       );
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
+
+      apps.x86_64-linux.windows-vm = {
+        type = "app";
+        program = "${self.packages.x86_64-linux.windows-vm}/bin/zen-bonsai-windows-vm";
+      };
 
       # `npm run lint` (`cd engine && ./mach lint zen`), packaged as a garnix CI
       # action, so it runs on the self-hosted runner on every push.

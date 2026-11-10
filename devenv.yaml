@@ -1,8 +1,7 @@
 inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
-  # Firefox 153 requires cbindgen >= 0.29.4; the rolling pin above still has
-  # 0.29.2. Pinned to the nixpkgs commit that first shipped 0.29.4 so only this
-  # one tool moves, not the whole toolchain.
+  # Take cbindgen and the fixed Fontconfig recipe from the same newer pin as
+  # flake.nix, without moving the base compiler or runtime ABI.
   nixpkgs-cbindgen:
-    url: github:NixOS/nixpkgs/7525d999cd850b9a488817abc89c75dc733acf17
+    url: github:NixOS/nixpkgs/806ae6af4159c4e7d03558ad683530510072de9a

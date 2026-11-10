@@ -5,8 +5,12 @@
   "binaryName": "zen",
   "version": {
     "product": "firefox",
-    "version": "159.0.1",
-    "candidate": "159.0.1",
+    "version": "160.0",
+    "source": {
+      "url": "https://archive.mozilla.org/pub/firefox/candidates/160.0-candidates/build1/source/firefox-160.0.source.tar.xz",
+      "hash": "sha512-kgmmLeHug/4FdQt3pDnciSgOv3OLUlfYSvGh+vL0u/UFVY/qwSbnEDPI3hpIJlcXwDQa9OhVE05Z0bS1ud2CDw=="
+    },
+    "candidate": "160.0",
     "candidateBuild": 1
   },
   "buildOptions": {
@@ -20,9 +24,9 @@
       "brandShortName": "Zen Bonsai",
       "brandFullName": "Zen Bonsai",
       "release": {
-        "displayVersion": "1.24.1b",
+        "displayVersion": "1.25t-bonsai.1",
         "github": {
-          "repo": "zen-browser/desktop"
+          "repo": "joegoldin/zen-bonsai-browser"
         },
         "archives": {
           "windows": "windows.mar",
@@ -42,7 +46,7 @@
       "release": {
         "displayVersion": "1.25t",
         "github": {
-          "repo": "zen-browser/desktop"
+          "repo": "joegoldin/zen-bonsai-browser"
         }
       }
     }
@@ -53,5 +57,5 @@
     ],
     "licenseType": "MPL-2.0"
   },
-  "updateHostname": "updates.zen-browser.app"
+  "updateHostname": "updates.zen-bonsai.dev"
 }

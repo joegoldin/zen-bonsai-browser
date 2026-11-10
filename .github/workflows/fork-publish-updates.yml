@@ -1,0 +1,97 @@
+name: Publish verified Bonsai updates
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Already-published combined release, e.g. 1.25t-bonsai.1"
+        required: true
+        type: string
+      channel:
+        description: "Update channel"
+        required: true
+        type: choice
+        options: [release, twilight]
+        default: release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bonsai-update-publication-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ inputs.version }}
+      CHANNEL: ${{ inputs.channel }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Require an already-published combined release
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          if not re.fullmatch(r"[0-9][0-9A-Za-z.]*-bonsai\.[0-9]+", os.environ["VERSION"]):
+              raise SystemExit("Expected a Bonsai release version")
+          PY
+          gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft,assets > release-info.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          release = json.loads(Path("release-info.json").read_text())
+          names = {asset["name"] for asset in release["assets"]}
+          required = {
+              "zen.linux-x86_64.tar.xz", "zen.windows-x86_64.zip",
+              "zen.windows-x86_64.installer.exe", "bonsai-update-bundle.tar",
+          }
+          if release["isDraft"] or release["tagName"] != os.environ["VERSION"]:
+              raise SystemExit("Updates require the matching published release, not a draft")
+          if not required <= names or not any(name.endswith(".deb") for name in names) or not any(name.endswith(".rpm") for name in names):
+              raise SystemExit("The combined Linux/Windows release is incomplete")
+          PY
+
+      - name: Checkout the release's public trust root and verifier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+          persist-credentials: false
+
+      - name: Check public verification and upload tools
+        run: |
+          python3 --version
+          openssl version
+          aws --version
+
+      - name: Download offline-signed update bundle
+        run: gh release download "$VERSION" --repo "$GITHUB_REPOSITORY" --pattern bonsai-update-bundle.tar --dir incoming
+
+      - name: Extract regular files without links or path traversal
+        run: |
+          python3 - <<'PY'
+          import tarfile
+          from pathlib import Path
+          destination = Path("verified-update-bundle")
+          destination.mkdir()
+          with tarfile.open("incoming/bonsai-update-bundle.tar") as archive:
+              members = archive.getmembers()
+              if len(members) > 100 or sum(member.size for member in members) > 2 * 1024**3 or any(not (member.isfile() or member.isdir()) for member in members):
+                  raise SystemExit("Unexpected files or links in update bundle")
+              archive.extractall(destination, members=members, filter="data")
+          PY
+
+      - name: Verify the offline attestation and every public file
+        run: python3 scripts/bonsai_mar.py verify-bundle verified-update-bundle --version "$VERSION" --channel "$CHANNEL"
+
+      - name: Publish immutable MARs before advertising updates
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: python3 -m scripts.bonsai_publish verified-update-bundle --version "$VERSION" --channel "$CHANNEL" --publish

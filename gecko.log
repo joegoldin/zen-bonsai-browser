@@ -1,0 +1,30 @@
+*** You are running in headless mode.
+1794196811759	Marionette	INFO	Marionette enabled
+console.error: "Warning: unrecognized command line flag" "-remote-allow-system-access"
+JavaScript warning: moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs, line 432: unreachable code after return statement
+1794196811827	Marionette	INFO	Listening on port 2828
+console.debug: "ZenSessionManager:" "Initializing session manager"
+console.debug: "ZenSessionManager:" "Session file path:" "/tmp/tmpty01yy57.bonsai-readme-on-vwoify6_/zen-sessions.jsonlz4"
+console.debug: "ZenSessionManager:" "Reading Zen session file from disk"
+JavaScript warning: chrome://browser/content/tabbrowser/drag-and-drop.js, line 1488: unreachable code after return statement
+JavaScript warning: moz-src:///browser/components/tabbrowser/Tabbrowser.sys.mjs, line 538: unreachable code after return statement
+JavaScript warning: chrome://browser/content/tabbrowser/tabs.mjs, line 1050: unreachable code after return statement
+console.error: "Failed to read backup file /tmp/tmpty01yy57.bonsai-readme-on-vwoify6_/zen-sessions-backup/clean.jsonlz4" (new NotFoundError("Could not open `/tmp/tmpty01yy57.bonsai-readme-on-vwoify6_/zen-sessions-backup/clean.jsonlz4': file does not exist (NS_ERROR_FILE_NOT_FOUND)", (void 0)))
+console.debug: "ZenSessionManager:" "No spaces data found in session file, running migration" [object Object]
+console.error: "Failed to read spaces data from database during migration" (new Error("Error(s) encountered during statement execution: no such table: zen_workspaces", "resource://gre/modules/Sqlite.sys.mjs", 1193))
+console.error: "Failed to read pins data from database during migration" (new Error("Error(s) encountered during statement execution: no such table: zen_pins", "resource://gre/modules/Sqlite.sys.mjs", 1193))
+console.debug: "ZenSessionManager:" "Restoring tabs from Places DB after migration" null (void 0) [object Object]
+console.debug: "ZenSessionManager:" "Build ID has changed since last session, not restoring only pinned tabs" ({buildId:"20261108183426", lastBuildId:""})
+console.debug: "ZenSessionManager:" "Saving windata state after migration"
+console.debug: "ZenSessionManager:" "Saving Zen session data with 0 tabs"
+JavaScript warning: moz-src:///browser/components/urlbar/UrlbarMuxerStandard.sys.mjs, line 942: unreachable code after return statement
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.debug: "[gZenWorkspaces]:" "Changing workspace to" "{c2a23111-5d38-41be-9184-02d7f5a40e39}"
+console.debug: "[gZenWorkspaces]:" "Selecting empty tab because startup page didnt select a valid tab"
+console.debug: "[gZenWorkspaces]:" "Removing empty tab added by startup page"
+console.warn: "[ZenMods]: No enabled Zen mods."
+JavaScript error: moz-src:///browser/components/sessionstore/SessionStartup.sys.mjs, line 264: TypeError: can't access property "length", initialState.savedGroups is undefined
+console.warn: "[ZenMods]: No enabled Zen mods."
+[Parent 2498868, IPC I/O Parent] WARNING: process 2498971 exited on signal 15: file ipc/chromium/src/chrome/common/process_watcher_posix_sigchld.cc:161
+A content process crashed and MOZ_CRASHREPORTER_SHUTDOWN is set, shutting down
+[GFX1-]: VideoBridgeParent receives IPC close with reason=AbnormalShutdown

@@ -42,4 +42,6 @@ support-files = [
 
 ["browser_tree_split_node.js"]
 
+["browser_tree_window_modes.js"]
+
 ["browser_tree_workspace.js"]
