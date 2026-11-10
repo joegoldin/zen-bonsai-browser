@@ -42,3 +42,21 @@ for (const [name, brand] of Object.entries(configuration.brands)) {
     assert.equal(brand.release.github.repo, "joegoldin/zen-bonsai-browser");
   });
 }
+
+test("update publication maintains its HTTP client without replacing released verification", () => {
+  const workflow = readFileSync(
+    new URL(
+      "../../.github/workflows/fork-publish-updates.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(workflow, /ref: \$\{\{ inputs\.version \}\}/);
+  assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /sparse-checkout: scripts\/bonsai_publish\.py/);
+  assert.match(
+    workflow,
+    /cp publication-client\/scripts\/bonsai_publish\.py scripts\/bonsai_publish\.py/,
+  );
+  assert.doesNotMatch(workflow, /cp[^\n]*bonsai_mar\.py/);
+});
