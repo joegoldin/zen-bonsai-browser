@@ -5,7 +5,7 @@
 .dotbuild/
 engine/
 firefox-*/
-node_modules/
+node_modules
 .surfer/
 
 __pycache__/
