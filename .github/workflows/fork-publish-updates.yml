@@ -62,6 +62,20 @@ jobs:
           ref: ${{ inputs.version }}
           persist-credentials: false
 
+      # HTTP publication fixes must not require retagging shipped binaries.
+      # Keep the verifier and signing root from the release itself.
+      - name: Checkout the maintained publication client
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: publication-client
+          sparse-checkout: scripts/bonsai_publish.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Use the maintained client with the released verifier
+        run: cp publication-client/scripts/bonsai_publish.py scripts/bonsai_publish.py
+
       - name: Check public verification and upload tools
         run: |
           python3 --version

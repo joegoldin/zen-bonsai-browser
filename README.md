@@ -162,10 +162,10 @@ The module also supports Sine mods. Sine looks for `lib/zen-bin-*`, the layout
 used by the prebuilt tarball. A `mach` build uses a different directory, so
 `nix/package.nix` adds a compatibility symlink.
 
-`nix/zen-browser.nix` reads the Firefox version from `surfer.json`. Candidate
-builds also pin their archive URL and hash there; Nix and the CI download
-wrapper use the same archive. The current Firefox 160 source is build 1 of the
-release candidate, not the final release.
+`nix/zen-browser.nix` reads the Firefox version from `surfer.json`, which also
+pins the source archive URL and hash. Nix and the CI download wrapper use the
+same archive. Firefox 160 now uses Mozilla's final source release, whose SHA512
+matches the previously pinned candidate-build-1 archive.
 
 `flake.nix` keeps a second, newer nixpkgs for the versions configure insists
 on. The overlay uses the newer `rust-cbindgen` and builds its `nss_latest`

@@ -20,18 +20,13 @@ export default function checkForZenUpdates() {
   ) {
     return;
   }
-  const updateUrl = Services.prefs.getStringPref(
-    "app.releaseNotesURL.prompt",
-    ""
-  );
   createSidebarNotification({
     headingL10nId: "zen-sidebar-notification-updated-heading",
     autoHideMs: ZEN_UPDATE_NOTIFICATION_TIMEOUT_MS,
     links: [
       {
-        url: Services.urlFormatter.formatURL(
-          updateUrl.replace("%VERSION%", version)
-        ),
+        // Existing profiles may still have upstream release-notes preferences.
+        url: "https://github.com/joegoldin/zen-bonsai-browser/releases",
         l10nId: "zen-sidebar-notification-updated",
         special: true,
         icon: "chrome://browser/skin/zen-icons/sparkles.svg",

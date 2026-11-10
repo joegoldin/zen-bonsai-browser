@@ -29,7 +29,10 @@ def check_public_file(path, relative, opener):
     size = 0
     request = urllib.request.Request(
         f"https://updates.zen-bonsai.dev/{relative}",
-        headers={"Cache-Control": "no-cache"},
+        headers={
+            "Cache-Control": "no-cache",
+            "User-Agent": "Zen-Bonsai-Update-Publisher/1.0",
+        },
     )
     try:
         with opener.open(request, timeout=60) as response:
