@@ -107,6 +107,7 @@ jobs:
         run: |
           node --test scripts/tests/*.test.mjs
           python3 -m unittest discover -s scripts/tests -p test_firefox_source.py
+          python3 -m unittest discover -s scripts/tests -p test_bonsai_publish.py
           python3 -m unittest discover -s scripts/tests -p test_build_identity.py
 
       - name: Surfer CI setup

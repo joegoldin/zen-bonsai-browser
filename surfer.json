@@ -7,11 +7,9 @@
     "product": "firefox",
     "version": "160.0",
     "source": {
-      "url": "https://archive.mozilla.org/pub/firefox/candidates/160.0-candidates/build1/source/firefox-160.0.source.tar.xz",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/160.0/source/firefox-160.0.source.tar.xz",
       "hash": "sha512-kgmmLeHug/4FdQt3pDnciSgOv3OLUlfYSvGh+vL0u/UFVY/qwSbnEDPI3hpIJlcXwDQa9OhVE05Z0bS1ud2CDw=="
-    },
-    "candidate": "160.0",
-    "candidateBuild": 1
+    }
   },
   "buildOptions": {
     "generateBranding": true
@@ -24,7 +22,7 @@
       "brandShortName": "Zen Bonsai",
       "brandFullName": "Zen Bonsai",
       "release": {
-        "displayVersion": "1.25t-bonsai.1",
+        "displayVersion": "1.25t-bonsai.2",
         "github": {
           "repo": "joegoldin/zen-bonsai-browser"
         },

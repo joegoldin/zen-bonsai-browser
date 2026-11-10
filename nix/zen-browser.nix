@@ -85,7 +85,7 @@ let
   # tree-style-tabs fork and increments for fork-only fixes between upstream
   # releases. It names the store path and the reported application version; the
   # Firefox base is read from surfer.json and stays correct on its own.
-  zen-version = "1.25t-bonsai.1";
+  zen-version = "1.25t-bonsai.2";
 in
 {
   inherit
