@@ -2,8 +2,12 @@
 """Build identity must describe the executable, not just regenerated INI files."""
 
 import configparser
+from pathlib import Path
+import tempfile
 import unittest
+import zipfile
 
+from scripts import check_build_identity as checker
 from scripts.check_build_identity import BuildIdentityError, validate_identity
 
 
@@ -57,6 +61,35 @@ class BuildIdentityTests(unittest.TestCase):
             )["build_id"],
             "20261109175329",
         )
+
+
+class FirefoxVersionTests(unittest.TestCase):
+    def validate(self, version):
+        platform = configparser.ConfigParser(interpolation=None)
+        platform.read_dict({"Build": {"Milestone": "160.0"}})
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "omni.ja"
+            with zipfile.ZipFile(archive, "w") as package:
+                package.writestr(
+                    "modules/AppConstants.sys.mjs",
+                    f'export var AppConstants = {{ZEN_FIREFOX_VERSION: "{version}"}};',
+                )
+            return checker.validate_firefox_version(archive, platform)
+
+    def test_compiled_firefox_version_matches_engine(self):
+        self.assertEqual(self.validate("160.0"), "160.0")
+
+    def test_missing_build_variable_is_rejected(self):
+        with self.assertRaisesRegex(BuildIdentityError, "Firefox version"):
+            self.validate("")
+
+    def test_display_version_is_not_the_firefox_version(self):
+        with self.assertRaisesRegex(BuildIdentityError, "Firefox version"):
+            self.validate("1.25t-bonsai.3")
+
+    def test_stale_engine_version_is_rejected(self):
+        with self.assertRaisesRegex(BuildIdentityError, "Firefox version"):
+            self.validate("159.0")
 
 
 if __name__ == "__main__":

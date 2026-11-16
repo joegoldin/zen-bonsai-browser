@@ -58,6 +58,19 @@ increments for fork-only fixes between upstream releases. It lands in the git
 tag and in `zen-version` in `nix/zen-browser.nix`, which is hand-maintained
 because Zen's version lives in its release tag rather than a tracked file.
 
+## Firefox version used by add-ons
+
+Keep `ZEN_FIREFOX_VERSION` equal to `surfer.json`'s Firefox base version, not
+Bonsai's display version. Surfer sets it in its generated mozconfig; the Nix
+recipe must export it independently because it bypasses Surfer. Without it,
+`AppConstants.ZEN_FIREFOX_VERSION` is empty: add-on update URLs retain unresolved
+version placeholders and Mozilla rejects the requests. It also breaks the
+version returned by `browser.runtime.getBrowserInfo()`.
+
+Both release packaging and Nix installation inspect `omni.ja` and require the
+compiled constant to match `platform.ini`'s `Milestone`. Keep this check enabled
+when changing the build or packaging paths.
+
 ## Upstream sync
 
 `.github/workflows/merge-upstream-zen.yml` runs on dispatch, not a timer: a

@@ -83,6 +83,10 @@ assert lib.assertMsg (
   && !(lib.elem "--enable-updater" base.configureFlags)
 ) "Zen Bonsai Nix builds must keep the in-app updater disabled";
 base.overrideAttrs (old: {
+  # Surfer exports this itself, but buildMozillaMach does not run Surfer.
+  # Add-on updates and browser.runtime.getBrowserInfo need Firefox, not Bonsai.
+  ZEN_FIREFOX_VERSION = zen-browser-src.firefox-version;
+
   # Firefox 157 dropped the ffmpeg option (toolkit/moz.configure now enables
   # it for every non-Android, non-Windows target), but buildMozillaMach still
   # passes it, and configure rejects unknown options.
@@ -109,6 +113,19 @@ base.overrideAttrs (old: {
   # glob this shim feeds is never run there.
   postInstall =
     (old.postInstall or "")
+    + ''
+      # Inspect the packaged constant as well as the configure input, including
+      # Darwin's Resources layout; do not launch a GUI during installation.
+      platforms=$(find "$out" -name platform.ini -type f)
+      if [ -z "$platforms" ]; then
+        echo "no packaged platform.ini; cannot verify Firefox version" >&2
+        exit 1
+      fi
+      while read -r platform; do
+        python ${zen-src-tree}/scripts/check_build_identity.py \
+          --firefox-version-only "$(dirname "$platform")/omni.ja"
+      done <<< "$platforms"
+    ''
     + lib.optionalString stdenv.hostPlatform.isLinux ''
       appdir=$(find "$out/lib" -mindepth 1 -maxdepth 1 -type d \
         -exec test -e '{}/zen' \; -print -quit)

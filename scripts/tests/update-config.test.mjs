@@ -60,3 +60,9 @@ test("update publication maintains its HTTP client without replacing released ve
   );
   assert.doesNotMatch(workflow, /cp[^\n]*bonsai_mar\.py/);
 });
+
+
+test("Nix builds supply the Firefox version independently of the Bonsai version", () => {
+  const recipe = readFileSync(new URL("../../nix/package.nix", import.meta.url), "utf8");
+  assert.match(recipe, /ZEN_FIREFOX_VERSION\s*=\s*zen-browser-src\.firefox-version\s*;/);
+});

@@ -9,6 +9,7 @@ import configparser
 import json
 import re
 import subprocess
+import zipfile
 from pathlib import Path
 
 
@@ -41,6 +42,21 @@ def validate_identity(output, application, platform):
     return {"version": version, "build_id": identities[0]}
 
 
+def validate_firefox_version(archive, platform):
+    try:
+        with zipfile.ZipFile(archive) as package:
+            constants = package.read("modules/AppConstants.sys.mjs").decode("utf-8")
+    except (OSError, KeyError, UnicodeError, zipfile.BadZipFile) as error:
+        raise BuildIdentityError("Cannot inspect compiled Firefox version") from error
+    match = re.search(r'ZEN_FIREFOX_VERSION:\s*"([^"]*)"', constants)
+    version = platform.get("Build", "Milestone", fallback="")
+    if not match or not version or match[1] != version:
+        raise BuildIdentityError(
+            "Compiled Firefox version is missing or does not match platform.ini Milestone"
+        )
+    return version
+
+
 def check_build_identity(binary):
     application = configparser.ConfigParser(interpolation=None)
     platform = configparser.ConfigParser(interpolation=None)
@@ -60,11 +76,26 @@ def check_build_identity(binary):
         raise BuildIdentityError(
             f"Executable identity command failed with status {result.returncode}"
         )
-    return validate_identity(result.stdout, application, platform)
+    identity = validate_identity(result.stdout, application, platform)
+    identity["firefox_version"] = validate_firefox_version(
+        binary.parent / "omni.ja", platform
+    )
+    return identity
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("binary", type=Path)
+    parser.add_argument(
+        "--firefox-version-only",
+        action="store_true",
+        help="Inspect omni.ja and sibling platform.ini without running the browser",
+    )
     arguments = parser.parse_args()
-    print(json.dumps(check_build_identity(arguments.binary.resolve(strict=True))))
+    path = arguments.binary.resolve(strict=True)
+    if arguments.firefox_version_only:
+        platform = configparser.ConfigParser(interpolation=None)
+        platform.read(path.parent / "platform.ini")
+        print(validate_firefox_version(path, platform))
+    else:
+        print(json.dumps(check_build_identity(path)))
