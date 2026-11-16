@@ -3,18 +3,101 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { JSONFile } from "resource://gre/modules/JSONFile.sys.mjs";
-import { nsZenBoostStyles } from "resource:///modules/zen/boosts/ZenBoostStyles.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
+const lazy = XPCOMUtils.declareLazy({
+  backend: {
+    service: "@mozilla.org/zen/boosts-backend;1",
+    iid: Ci.nsIZenBoostsBackend,
+  },
+});
 
 class nsZenBoostsManager {
   registeredDomains = new Map(); // <domain, { boosts: <id, boostEntry>, activeBoostID: null }>
-  #stylesManager = new nsZenBoostStyles();
 
   #saveFilename = "zen-boosts.jsonlz4";
 
   #file = null;
 
+  static OBSERVED_TOPICS = ["zen-boost-applied", "zen-space-gradient-update"];
+
   constructor() {
-    this.#readBoostsFromStore(this.notify);
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "boostsEnabledPref",
+      "zen.boosts.enabled",
+      true,
+      () => this.#syncAllBoostsToBackend()
+    );
+    for (const topic of nsZenBoostsManager.OBSERVED_TOPICS) {
+      Services.obs.addObserver(this, topic);
+    }
+    this.#readBoostsFromStore(() => {
+      this.#syncWorkspaceAccents();
+      this.#syncAllBoostsToBackend();
+      this.notify();
+    });
+  }
+
+  init() {}
+
+  observe(subject, topic) {
+    switch (topic) {
+      case "zen-boost-applied":
+        this.#applySizeOverride(subject);
+        break;
+      case "zen-space-gradient-update":
+        this.#syncWorkspaceAccents();
+        break;
+    }
+  }
+
+  #syncBoostToBackend(domain) {
+    const enabled = this.boostsEnabledPref && !Services.appinfo.inSafeMode;
+    if (enabled && this.registeredBoostForDomain(domain)) {
+      const { boostData } = this.loadActiveBoostFromStore(domain).boostEntry;
+      lazy.backend.setBoostForDomain(domain, boostData);
+    } else {
+      lazy.backend.removeBoostForDomain(domain);
+    }
+  }
+
+  #syncAllBoostsToBackend() {
+    lazy.backend.removeAllBoosts();
+    for (const domain of this.registeredDomains.keys()) {
+      this.#syncBoostToBackend(domain);
+    }
+  }
+
+  #syncWorkspaceAccents() {
+    for (const win of Services.wm.getEnumerator("navigator:browser")) {
+      const colors =
+        win.gZenWorkspaces?.getActiveWorkspace()?.theme?.gradientColors ?? [];
+      const primary = colors.find(color => color.isPrimary) ?? colors[0];
+      if (primary?.c) {
+        lazy.backend.setWorkspaceAccent(win.browsingContext, ...primary.c);
+      }
+    }
+  }
+
+  #applySizeOverride(windowGlobal) {
+    const domain = windowGlobal.documentURI?.asciiHost;
+    const browser = windowGlobal.browsingContext.top.embedderElement;
+    if (!domain || !browser || !this.registeredBoostForDomain(domain)) {
+      return;
+    }
+    const { boostData } = this.loadActiveBoostFromStore(domain).boostEntry;
+    this.updateBoostSizeOverride(browser, boostData.sizeOverride);
+  }
+
+  updateBoostSizeOverride(browser, sizeOverride, disable = false) {
+    if (
+      sizeOverride &&
+      isFinite(sizeOverride) &&
+      (sizeOverride !== 1 || disable)
+    ) {
+      browser.ownerGlobal.FullZoom?.setZoom(sizeOverride, browser);
+    }
   }
 
   /**
@@ -100,8 +183,8 @@ class nsZenBoostsManager {
       }
     }
 
-    this.#stylesManager.invalidateStyleForDomain(domain);
-    this.notify(true);
+    this.#syncBoostToBackend(domain);
+    this.notify();
 
     this.#writeToDisk(this.registeredDomains);
   }
@@ -327,7 +410,7 @@ class nsZenBoostsManager {
     Services.obs.notifyObservers(null, "zen-boosts-active-change", { id });
 
     this.#writeToDisk(this.registeredDomains);
-    this.#stylesManager.invalidateStyleForDomain(domain);
+    this.#syncBoostToBackend(domain);
     this.notify();
   }
 
@@ -342,13 +425,11 @@ class nsZenBoostsManager {
 
     if (domainEntry) {
       if (domainEntry.boostEntries.has(id)) {
-        let unloadStyles = false;
         if (domainEntry.activeBoostId === id) {
           domainEntry.activeBoostId = null;
           Services.obs.notifyObservers(null, "zen-boosts-active-change", {
             id: null,
           });
-          unloadStyles = true;
         } else {
           domainEntry.activeBoostId = id;
           Services.obs.notifyObservers(null, "zen-boosts-active-change", {
@@ -357,8 +438,8 @@ class nsZenBoostsManager {
         }
 
         this.#writeToDisk(this.registeredDomains);
-        this.#stylesManager.invalidateStyleForDomain(domain);
-        this.notify(unloadStyles);
+        this.#syncBoostToBackend(domain);
+        this.notify();
       }
     }
   }
@@ -404,18 +485,15 @@ class nsZenBoostsManager {
     const domainEntry = this.#getOrCreateDomainEntry(domain);
     domainEntry.boostEntries.set(id, boostEntry);
 
-    this.#stylesManager.invalidateStyleForDomain(domain);
+    this.#syncBoostToBackend(domain);
     this.notify();
   }
 
   /**
-   * Notifies all observers that boost data has been updated.
-   * This triggers a 'zen-boosts-update' notification event.
-   *
-   * @param {boolean} unloadStyles - Whether to unload styles during the update.
+   * Notifies the boosts UI that boost data has been updated.
    */
-  notify(unloadStyles = false) {
-    Services.obs.notifyObservers(null, "zen-boosts-update", { unloadStyles });
+  notify() {
+    Services.obs.notifyObservers(null, "zen-boosts-update");
   }
 
   /**
@@ -608,22 +686,6 @@ class nsZenBoostsManager {
   }
 
   /**
-   * Gets from cache or creates and caches a new style sheet for the given boost data.
-   *
-   * @param {string} domain - The domain of the boosts.
-   * @returns {nsIStyleSheet} The style sheet corresponding to the boost data.
-   */
-  getStyleSheetForBoost(domain) {
-    const boost = this.loadActiveBoostFromStore(domain);
-    if (!boost) {
-      return null;
-    }
-
-    const { boostData } = boost.boostEntry;
-    return this.#stylesManager.getStyleForBoost(boostData, domain);
-  }
-
-  /**
    * Opens the boost editor in a new popup window.
    *
    * @param {Window} parentWindow - The parent browser window
@@ -803,7 +865,15 @@ class nsZenBoostsManager {
         : typeof value === typeof template &&
           (value !== null) === (template !== null);
     for (const [key, template] of Object.entries(result)) {
-      const value = data?.[key];
+      let value = data?.[key];
+      // The editor stores slider values as strings.
+      if (
+        typeof template === "number" &&
+        typeof value === "string" &&
+        value.trim()
+      ) {
+        value = Number(value);
+      }
       if (!sameShape(value, template)) {
         continue;
       }
@@ -827,6 +897,11 @@ class nsZenBoostsManager {
       }
     }
     result.customCSS = this.sanitizeSharedCSS(result.customCSS);
+    for (const key of ["zapSelectors", "focusSelectors"]) {
+      result[key] = result[key].filter(selector =>
+        this.isSafeSharedSelector(selector)
+      );
+    }
     result.fontFamily = /^[\w\s,'"-]*$/.test(result.fontFamily)
       ? result.fontFamily
       : "";
@@ -842,10 +917,30 @@ class nsZenBoostsManager {
     return result;
   }
 
+  /**
+   * Removes everything that could make a page load a resource from CSS that
+   * came from somebody else. Backslashes go first, since the CSS parser reads
+   * `u\72l()` as `url()`.
+   *
+   * @param {string} css
+   * @returns {string}
+   */
   sanitizeSharedCSS(css) {
     return String(css || "")
-      .replace(/@import\b[^;{]*;?/gi, "")
-      .replace(/\b(?:url|image-set|image)\s*\([^)]*\)/gi, "none");
+      .replace(/\\/g, "")
+      .replace(/@import\b[^;{]*;?/gi, " ")
+      .replace(/\b(?:url|src|image-set|image)\s*\([^)]*\)?/gi, "none");
+  }
+
+  /**
+   * Whether a selector that came from somebody else can go in front of a rule
+   * block without adding rules of its own.
+   *
+   * @param {string} selector
+   * @returns {boolean}
+   */
+  isSafeSharedSelector(selector) {
+    return !!selector.trim() && !/[{}]/.test(selector);
   }
 
   /**
@@ -933,7 +1028,8 @@ class nsZenBoostsManager {
         if (result === nsIFilePicker.returnOK && fp.file) {
           try {
             const fileContent = await IOUtils.readUTF8(fp.file.path);
-            resolve(JSON.parse(fileContent));
+            const data = JSON.parse(fileContent);
+            resolve(this.boostDataFromShared(data, data?.boostName));
           } catch (e) {
             console.error("Import failed:", e);
             resolve(null);

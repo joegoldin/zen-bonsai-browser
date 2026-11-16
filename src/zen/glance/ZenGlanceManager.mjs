@@ -250,7 +250,6 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
         this.#detached
           ? this.closeDetachedGlance()
           : this.closeGlance({ onTabClose: true }),
-      cmd_zenGlanceExpand: () => this.fullyOpenGlance(),
       cmd_zenGlanceSplit: () => this.splitGlance(),
     };
 
@@ -324,12 +323,14 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
       // The window is really going now, so stop listening. A quit request can
       // still be canceled, so that path leaves the observer in place.
       Services.obs.removeObserver(this, "quit-application-requested");
+      this.#glances.clear();
     } else {
+      // A vetoed close leaves the Glance live, and successful closes remove
+      // their own entries when they finish.
       for (const [, glance] of this.#glances) {
         gBrowser.removeTab(glance.tab, { animate: false });
       }
     }
-    this.#glances.clear();
   }
 
   /**
@@ -542,6 +543,15 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
    * @param {Tab} ownerTab - The tab that owns this glance
    */
   openGlance(data, existingTab = null, ownerTab = null) {
+    if (gZenVerticalTabsManager.hidesTabsToolbar) {
+      if (!existingTab && this.#isGlanceLoadAllowed(data)) {
+        window.openLinkIn(data.url, "tab", {
+          triggeringPrincipal: data.triggeringPrincipal,
+        });
+      }
+      return Promise.resolve(null);
+    }
+
     if (this.#currentBrowser) {
       return Promise.resolve(this.#currentTab);
     }
