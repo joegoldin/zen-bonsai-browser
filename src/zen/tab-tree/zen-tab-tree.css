@@ -17,8 +17,8 @@ tab-group[split-view-group][zen-tree-hidden] {
 /* Shared twisty look. It's hidden until the parent row is hovered (or stays
    visible while collapsed so the branch can be reopened). */
 .zen-tree-twisty {
-  width: 16px;
-  height: 16px;
+  width: var(--size-item-small);
+  height: var(--size-item-small);
   -moz-context-properties: fill;
   fill: currentColor;
   list-style-image: url("chrome://global/skin/icons/arrow-down.svg");
@@ -43,7 +43,7 @@ tab-group[split-view-group][zen-tree-hidden] {
    left-of-center against the favicon). */
 tab-group[split-view-group] > .zen-tree-twisty {
   position: absolute;
-  inset-inline-start: var(--toolbarbutton-inner-padding, 8px);
+  inset-inline-start: var(--toolbarbutton-inner-padding, var(--zen-space-8));
   inset-block: 0;
   margin-block: auto;
   z-index: 3;
@@ -57,7 +57,7 @@ tab-group[split-view-group] > .zen-tree-twisty {
 #tabbrowser-tabs
   tab-group[split-view-group][zen-tree-collapsed]
   > .zen-tree-twisty {
-  opacity: 0.85;
+  opacity: var(--zen-opacity-85);
   pointer-events: auto;
 }
 

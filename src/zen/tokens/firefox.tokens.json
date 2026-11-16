@@ -13,6 +13,7 @@
     "--panel-separator-margin-vertical": { "external": true },
     "--panel-subview-body-padding": { "external": true },
     "--tab-group-label-padding": { "external": true },
+    "--toolbarbutton-inner-padding": { "external": true },
     "--urlbar-icon-padding": { "external": true },
     "--urlbarview-results-padding": { "external": true }
   },
