@@ -212,6 +212,32 @@ test("Debian packages select genuine ALSA rather than the incomplete OSS provide
   );
 });
 
+for (const [platform, file, binary] of [
+  [
+    "Linux",
+    "../../.github/workflows/fork-linux-release.yml",
+    "${objects[0]}/dist/zen/zen",
+  ],
+  ["Windows", "../ci/windows-build.sh", "$objdir/dist/zen/zen.exe"],
+]) {
+  test(`${platform} validates the packaged identity and exports its metadata`, () => {
+    const build = readFileSync(new URL(file, import.meta.url), "utf8");
+    const packageStep = build.indexOf("npm run package");
+    const identityCheck = `python3 scripts/check_build_identity.py "${binary}"`;
+    assert.ok(packageStep >= 0);
+    assert.ok(
+      build.indexOf(identityCheck, packageStep) > packageStep,
+      "Identity must be checked in the same dist/zen tree used to create the MAR, not unpacked dist/bin",
+    );
+    for (const ini of ["application.ini", "platform.ini"]) {
+      assert.ok(
+        build.includes(`cp "$objdir/dist/zen/${ini}"`),
+        `The update must carry the verified package's ${ini}`,
+      );
+    }
+  });
+}
+
 test("native Windows packaging reuses the full installer produced by Surfer", () => {
   const build = readFileSync(
     new URL("../ci/windows-build.sh", import.meta.url),
@@ -220,7 +246,7 @@ test("native Windows packaging reuses the full installer produced by Surfer", ()
   assert.doesNotMatch(build, /\.\/mach build installer\b/);
   assert.match(build, /^npm run package$/m);
   assert.ok(build.includes("-name '*.installer.exe'"));
-  assert.ok(build.includes('${#installers[@]} != 1'));
+  assert.ok(build.includes("${#installers[@]} != 1"));
   assert.ok(
     build.includes(
       'cp "${installers[0]}" artifacts/windows-release/zen.windows-x86_64.installer.exe',

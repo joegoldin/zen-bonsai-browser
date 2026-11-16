@@ -193,7 +193,8 @@ jobs:
           npm run package
           mapfile -t objects < <(find engine -maxdepth 1 -type d -name 'obj-*')
           test "${#objects[@]}" -eq 1
-          python3 scripts/check_build_identity.py "${objects[0]}/dist/bin/zen"
+          # dist/bin contains loose modules; dist/zen is the packed MAR source.
+          python3 scripts/check_build_identity.py "${objects[0]}/dist/zen/zen"
 
       - name: Rename artifact
         run: mv dist/zen-*.tar.xz "zen.linux-x86_64.tar.xz"
@@ -213,8 +214,8 @@ jobs:
           objdir=${objects[0]}
           mkdir -p artifacts/linux-update
           cp dist/output.mar artifacts/linux-update/linux.unsigned.mar
-          cp "$objdir/dist/bin/application.ini" artifacts/linux-update/linux.application.ini
-          cp "$objdir/dist/bin/platform.ini" artifacts/linux-update/linux.platform.ini
+          cp "$objdir/dist/zen/application.ini" artifacts/linux-update/linux.application.ini
+          cp "$objdir/dist/zen/platform.ini" artifacts/linux-update/linux.platform.ini
 
       - name: Upload unsigned update for offline signing
         uses: actions/upload-artifact@v4

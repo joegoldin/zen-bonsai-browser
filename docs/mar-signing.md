@@ -23,8 +23,12 @@ The Node tests check both Linux and Windows arguments before compilation.
 Both CI jobs pin one UTC `MOZ_BUILD_DATE` across compilation and packaging.
 Packaging can regenerate INI files without rebuilding the executable;
 `scripts/check_build_identity.py` therefore checks `--full-version` against both
-INI files before accepting artifacts. Otherwise, update metadata can advertise
-a newer build ID than the installed binary and repeatedly offer the same update.
+INI files before accepting artifacts. Run it against `obj-*/dist/zen/zen`
+(`zen.exe` on Windows), the staged package used to create the MAR. Unlike
+`dist/bin`, this tree contains the packed `omni.ja` needed to check the compiled
+Firefox version. Export the update INI files from this same verified tree.
+Otherwise, update metadata can advertise a newer build ID than the installed
+binary and repeatedly offer the same update.
 
 ## Sign and verify
 

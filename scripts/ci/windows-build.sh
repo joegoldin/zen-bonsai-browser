@@ -89,7 +89,8 @@ PY
 # Surfer packaging already creates the full NSIS installer; Firefox 160 has no
 # standalone "mach build installer" target. Validate its output below instead.
 npm run package
-python3 scripts/check_build_identity.py "$objdir/dist/bin/zen.exe"
+# dist/bin contains loose modules; dist/zen is the packed MAR source.
+python3 scripts/check_build_identity.py "$objdir/dist/zen/zen.exe"
 
 mkdir -p artifacts/windows-release
 mapfile -t archives < <(find dist -maxdepth 1 -type f -name '*.win64.zip')
@@ -103,7 +104,7 @@ cp "${archives[0]}" artifacts/windows-release/zen.windows-x86_64.zip
 cp "${installers[0]}" artifacts/windows-release/zen.windows-x86_64.installer.exe
 # Signing is a separate trusted release step. Never publish this unsigned MAR.
 cp dist/output.mar artifacts/windows-release/windows.unsigned.mar
-cp "$objdir/dist/bin/application.ini" artifacts/windows-release/application.ini
-cp "$objdir/dist/bin/platform.ini" artifacts/windows-release/platform.ini
+cp "$objdir/dist/zen/application.ini" artifacts/windows-release/application.ini
+cp "$objdir/dist/zen/platform.ini" artifacts/windows-release/platform.ini
 
 (cd artifacts/windows-release && sha256sum zen.windows-x86_64.zip zen.windows-x86_64.installer.exe windows.unsigned.mar > SHA256SUMS)
